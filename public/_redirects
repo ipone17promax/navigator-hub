@@ -1,0 +1,3 @@
+# Netlify SPA 路由回退：任意未匹配路径都返回 index.html，由 React Router 处理
+# 优先级最高（比 netlify.toml 里的 [[redirects]] 先执行），确保刷新子路由不 404
+/*    /index.html   200

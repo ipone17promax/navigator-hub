@@ -1,0 +1,55 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# ============================================================
+# 边缘压缩：Brotli（优于 gzip，Netlify CDN 自动协商）
+# ============================================================
+[build.environment]
+  NODE_VERSION = "20"
+
+# ============================================================
+# SPA 路由回退：由 public/_redirects 处理（优先级最高）
+# 此处不再重复定义 [[redirects]]，避免配置冗余
+# ============================================================
+
+# ============================================================
+# 缓存策略：静态资源长期缓存，HTML 短期缓存
+# ============================================================
+
+# JS/CSS/字体/图片 → 1年强缓存 + immutable（文件名含 hash，内容变更自动失效）
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Service Worker 本身 → 不缓存（确保用户始终拿到最新版本）
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# favicon → 1天缓存
+[[headers]]
+  for = "/favicon.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# HTML 页面 → 短缓存 + must-revalidate（保证用户拿到最新 HTML）
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# ============================================================
+# 安全头：XSS 防护、MIME 嗅探防护
+# geolocation=(self) 允许天气组件使用定位；microphone/camera 保持禁用
+# ============================================================
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-XSS-Protection = "1; mode=block"
+    Permissions-Policy = "geolocation=(self), microphone=(), camera=()"

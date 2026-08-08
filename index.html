@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0A0A1A" />
+    <meta name="description" content="NavigatorHub - 赛博未来主义高级网址导航中心" />
+    <title>NavigatorHub · 你的星际导航中心</title>
+    <!-- 资源预连接：提前建立 TCP/TLS，减少首屏等待 -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <!-- 首屏关键样式内联：避免 FOUC 闪烁 -->
+    <style>
+      html,body{margin:0;padding:0;background:#0A0A1A;color:#fff;}
+      #root{min-height:100vh;}
+    </style>
+    <script type="module">
+      if (import.meta.hot?.on) {
+        import.meta.hot.on('vite:error', (error) => {
+          if (error.err) {
+            console.error(
+              [error.err.message, error.err.frame].filter(Boolean).join('\n'),
+            );
+          }
+        });
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- 后台加速引擎：Service Worker 注册（仅生产环境） -->
+    <script>
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/sw.js', { scope: '/' })
+            .then(function (reg) {
+              console.log('[加速引擎] Service Worker 已激活，后台缓存加速已启用');
+              // 检测到新版本时静默更新
+              reg.addEventListener('updatefound', function () {
+                var newWorker = reg.installing;
+                if (newWorker) {
+                  newWorker.addEventListener('statechange', function () {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      console.log('[加速引擎] 检测到新版本，已在后台静默更新');
+                      newWorker.postMessage('SKIP_WAITING');
+                    }
+                  });
+                }
+              });
+            })
+            .catch(function (err) {
+              console.warn('[加速引擎] 注册失败（不影响正常使用）:', err);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
