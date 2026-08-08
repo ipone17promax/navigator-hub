@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { HashRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import HomePage from "@/pages/HomePage";
 import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/useAuthStore";

@@ -2,8 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tsconfigPaths from "vite-tsconfig-paths";
 
+// GitHub Pages 子路径部署时自动加 base 前缀（本地开发保持 /）
+const base = process.env.GITHUB_PAGES === "true" ? "/navigator-hub/" : "/";
+
 // https://vite.dev/config/
 export default defineConfig({
+  base,
   build: {
     sourcemap: 'hidden',
     // 代码分割优化：按依赖拆分 chunk，利用浏览器并行下载 + 长期缓存
