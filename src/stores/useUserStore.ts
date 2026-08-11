@@ -19,7 +19,7 @@ export interface CustomCategory {
 }
 
 export type LayoutMode = "comfy" | "compact" | "large";
-export type HealthStatus = "unknown" | "ok" | "warn" | "err";
+export type HealthStatus = "unknown" | "ok" | "warn" | "err" | "checking";
 
 export interface SiteVisitStat {
   siteId: string;

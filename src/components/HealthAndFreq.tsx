@@ -8,18 +8,19 @@ export function HealthBadge({ siteId }: { siteId: string }) {
   const h = useUserStore((s) => s.health[siteId]);
   const { t } = useI18n();
   if (!h) return null;
-  const map: Record<HealthStatus, { color: string; icon: Icons.LucideIcon; label: string }> = {
-    ok:      { color: "#34d399", icon: Icons.CheckCircle, label: t.health.ok },
-    warn:    { color: "#fbbf24", icon: Icons.AlertTriangle, label: t.health.warn },
-    err:     { color: "#f87171", icon: Icons.XCircle, label: t.health.err },
-    unknown: { color: "#94a3b8", icon: Icons.HelpCircle, label: t.health.unknown },
+  const map: Record<string, { color: string; icon: Icons.LucideIcon; label: string }> = {
+    ok:       { color: "#34d399", icon: Icons.CheckCircle,   label: t.health.ok },
+    warn:     { color: "#fbbf24", icon: Icons.AlertTriangle, label: t.health.warn },
+    err:      { color: "#f87171", icon: Icons.XCircle,       label: t.health.err },
+    unknown:  { color: "#94a3b8", icon: Icons.HelpCircle,    label: t.health.unknown },
+    checking: { color: "#a78bfa", icon: Icons.Loader2,       label: "检测中…" },
   };
-  const m = map[h.status];
+  const m = map[h.status] ?? map.unknown;
   const I = m.icon;
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-black/30 px-1.5 py-0.5 text-[10px]"
-      title={`${m.label} ${h.responseMs ? "· " + h.responseMs + "ms" : ""} ${t.health.lastCheck}: ${new Date(h.lastCheck).toLocaleString()}`}>
-      <I size={10} style={{ color: m.color }} />
+      title={h.lastCheck ? `${m.label} ${h.responseMs ? "· " + h.responseMs + "ms" : ""} ${t.health.lastCheck}: ${new Date(h.lastCheck).toLocaleString()}` : m.label}>
+      <I size={10} style={{ color: m.color }} className={(h.status as string) === "checking" ? "animate-spin" : ""} />
     </span>
   );
 }
