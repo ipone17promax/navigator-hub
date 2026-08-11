@@ -4,26 +4,25 @@ import { useI18n } from "@/i18n";
 import CommandPalette from "@/components/CommandPalette";
 import HeaderActions from "@/components/home/HeaderActions";
 import FooterActions from "@/components/home/FooterActions";
-import LeftSidebar from "@/components/home/LeftSidebar";
-import RightPanel from "@/components/home/RightPanel";
 import SearchBlock from "@/components/home/SearchBlock";
 import ContentArea from "@/components/home/ContentArea";
+import FavoritesStrip from "@/components/home/FavoritesStrip";
+import InfoStrip from "@/components/home/InfoStrip";
 import { useAppStore } from "@/stores/useAppStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { SITES, CATEGORIES } from "@/config/sites";
 
 /**
- * HomePage：360 浏览器导航风格三栏布局
- *   ┌──────── Header（工具栏）──────────────┐
- *   │ LeftSidebar │ MainColumn │ RightPanel │
- *   │              │ SearchBlock│            │
- *   │              │ ContentArea│            │
- *   └──────── Footer ───────────────────────┘
+ * HomePage：360 导航风格单栏垂直堆叠
+ *   顶部：logo + 工具栏(含迷你天气)
+ *   搜索区：logo + 引擎Tab + 搜索框 + 健康条 + 快捷工具
+ *   收藏条：横向收藏站点(有收藏才显示)
+ *   主内容：精选轮播 + 分类横向Tab + 站点网格
+ *   信息条：天气/日历/行情/新闻 横排4列
+ *   底部：页脚 + 移动端导航
  *
- * 主文件不再直接渲染任何业务组件，只处理：
- *   - 加载动画
- *   - 全局快捷键
- *   - 三栏布局框架
+ * 左侧栏(LeftSidebar)和右侧栏(RightPanel)组件文件保留不删，
+ * 但 HomePage 不再引用——改用 FavoritesStrip + InfoStrip 替代其功能。
  */
 export default function HomePage() {
   const { t, toggle, toggleTheme, locale } = useI18n();
@@ -115,10 +114,8 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden text-ink">
-      {/* 背景层保持不变（用原先的机制，由背景 store 注入） */}
-
-      {/* 头部工具栏 */}
-      <header className="relative z-20 mx-auto flex w-full max-w-[1500px] items-center justify-between px-4 py-3 sm:px-6">
+      {/* 头部工具栏（360 风格：logo + 工具按钮 + 迷你天气 + 登录） */}
+      <header className="relative z-20 mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient shadow-glow-xs">
             <Icons.Share2 size={18} className="text-white" />
@@ -148,17 +145,13 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 三栏主体：左分类栏 / 中内容 / 右信息栏 */}
-      <div className={`relative mx-auto flex w-full max-w-[1500px] transition-opacity duration-500 ${loaded ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-        <LeftSidebar />
-
-        <main className="flex min-w-0 flex-1 flex-col">
-          <SearchBlock />
-          <ContentArea />
-          <FooterActions />
-        </main>
-
-        <RightPanel />
+      {/* 单栏主体：搜索 → 收藏 → 内容 → 信息条 → 底部 */}
+      <div className={`relative mx-auto flex w-full max-w-7xl flex-col transition-opacity duration-500 ${loaded ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+        <SearchBlock />
+        <FavoritesStrip />
+        <ContentArea />
+        <InfoStrip />
+        <FooterActions />
       </div>
 
       {/* 全局弹层：命令面板 */}

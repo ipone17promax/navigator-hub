@@ -3,6 +3,7 @@ import * as Icons from "lucide-react";
 import { useI18n } from "@/i18n";
 import FontSizeToggle from "@/components/FontSizeToggle";
 import LoginCard from "@/components/LoginCard";
+import WeatherMini from "./WeatherMini";
 import SettingsDrawer, { type TabKey } from "@/components/SettingsDrawer";
 import { useAuthStore } from "@/stores/useAuthStore";
 
@@ -46,6 +47,7 @@ export default function HeaderActions() {
             </button>
           );
         })}
+        <WeatherMini />
         <FontSizeToggle />
         {authStatus !== "admin" && (
           <button
