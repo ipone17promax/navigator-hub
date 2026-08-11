@@ -11,6 +11,14 @@ import BottomNavBar from "@/components/BottomNavBar";
 import CommandPalette from "@/components/CommandPalette";
 import { HighFreqBar } from "@/components/HealthAndFreq";
 import SettingsDrawer from "@/components/SettingsDrawer";
+import WeatherWidget from "@/components/WeatherWidget";
+import MiniCalendar from "@/components/MiniCalendar";
+import NewsStream from "@/components/NewsStream";
+import StockWidget from "@/components/StockWidget";
+import FeaturedHighlights from "@/components/FeaturedHighlights";
+import FontSizeToggle from "@/components/FontSizeToggle";
+import LoginCard from "@/components/LoginCard";
+import SearchTabs from "@/components/SearchTabs";
 import { useAppStore } from "@/stores/useAppStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { SITES, CATEGORIES } from "@/config/sites";
@@ -31,6 +39,7 @@ export default function HomePage() {
   const unlocked = useUserStore((s) => s.privateUnlocked);
 
   const [drawer, setDrawer] = useState<{ open: boolean; tab: "bg" | "theme" | "data" | "stats" | "custom" }>({ open: false, tab: "bg" });
+  const [showLogin, setShowLogin] = useState(false);
 
   useEffect(() => {
     const t1 = setTimeout(() => setLoaded(true), 400);
@@ -171,6 +180,14 @@ export default function HomePage() {
               title={t.sync.title}>
               <Icons.CloudCog size={14} />
             </button>
+            <FontSizeToggle />
+            {authStatus !== "admin" && (
+              <button onClick={() => setShowLogin(true)}
+                className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+                title="管理员登录">
+                <Icons.LogIn size={14} />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -196,8 +213,17 @@ export default function HomePage() {
       <main className="relative z-10 flex flex-col gap-10 px-5 pb-32 pt-10">
         <GreetingClock />
         <SearchHero />
+        <SearchTabs />
+        <FeaturedHighlights />
         <HighFreqBar />
         <QuickTools />
+        {/* 信息面板：天气 + 日历 + 行情 + 新闻 */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <WeatherWidget />
+          <MiniCalendar />
+          <StockWidget />
+          <NewsStream />
+        </div>
         <CategoryTabs onOpenEdit={() => setDrawer({ open: true, tab: "custom" })} />
         <SiteGrid />
         <AppFooter />
@@ -213,6 +239,7 @@ export default function HomePage() {
 
       <CommandPalette />
       <SettingsDrawer open={drawer.open} initial={drawer.tab} onClose={() => setDrawer((s) => ({ ...s, open: false }))} />
+      {showLogin && <LoginCard onClose={() => setShowLogin(false)} />}
     </div>
   );
 }
