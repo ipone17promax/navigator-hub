@@ -1,192 +1,170 @@
 import { create } from "zustand";
-import { logger } from "@/lib/logger";
+import { persist } from "zustand/middleware";
 
-// ============================================================
-// 安全的 localStorage 工具
-// ============================================================
-const safeGet = <T,>(key: string, fallback: T): T => {
-  try {
-    const v = localStorage.getItem(key);
-    return v !== null ? (JSON.parse(v) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-};
+export interface CustomSite {
+  id: string;
+  name: string;
+  url: string;
+  desc?: string;
+  icon?: string;
+  categoryId: string;
+}
 
-const safeSet = (key: string, value: unknown): void => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    /* noop */
-  }
-};
+export interface CustomCategory {
+  id: string;
+  name: string;
+  iconName: string;
+  order: number;
+  private?: boolean;
+}
 
-const LS = {
-  favorites: "navhub:favorites",
-  stats: "navhub:visitStats",
-  bg: "navhub:background",
-} as const;
+export type LayoutMode = "comfy" | "compact" | "large";
+export type HealthStatus = "unknown" | "ok" | "warn" | "err";
 
-// ============================================================
-// 类型
-// ============================================================
-export interface VisitRecord {
+export interface SiteVisitStat {
   siteId: string;
+  siteName: string;
+  url: string;
+  categoryId: string;
   count: number;
-  lastVisit: number; // timestamp
+  lastAt: number;
 }
 
-export type BgKey = "default" | "stars" | "aurora" | "ocean" | "sunset" | "forest" | "abstract" | "custom";
-
-export interface BgConfig {
-  key: BgKey;
-  /** 自定义背景图 dataURL */
-  customUrl?: string;
-  /** 背景透明度 0~1 */
-  opacity: number;
+export interface HealthInfo {
+  [siteId: string]: { status: HealthStatus; lastCheck: number; responseMs?: number };
 }
 
-// ============================================================
-// State
-// ============================================================
-interface UserState {
-  // ===== 收藏 =====
-  favorites: string[];
+export interface UserState {
+  favorites: string[];                         // siteId[]
+  favoriteOrder: string[];                     // 拖拽重排
+  visits: SiteVisitStat[];                     // 统计
+  customCats: CustomCategory[];                // 自定义分类
+  customSites: CustomSite[];                   // 自定义站点
+  categoryOrder: string[];                     // 分类排序 id
+  layout: LayoutMode;
+  privatePwdHash: string;                      // 隐私密码（简易 hash）
+  privateUnlocked: boolean;                    // 本次会话解锁状态
+  health: HealthInfo;                          // 站点健康
+  setFavorites: (f: string[]) => void;
   toggleFavorite: (siteId: string) => void;
-  isFavorite: (siteId: string) => boolean;
-
-  // ===== 访问统计 =====
-  visitStats: Record<string, VisitRecord>;
-  recordVisit: (siteId: string) => void;
+  reorderFavorites: (order: string[]) => void;
+  recordVisit: (s: Omit<SiteVisitStat, "count" | "lastAt"> & { count?: number; lastAt?: number }) => void;
   clearStats: () => void;
-  getTopSites: (limit?: number) => VisitRecord[];
-
-  // ===== 自定义背景 =====
-  bgConfig: BgConfig;
-  setBgKey: (key: BgKey) => void;
-  setBgCustomUrl: (url: string) => void;
-  setBgOpacity: (opacity: number) => void;
-  resetBg: () => void;
+  addCategory: (c: Omit<CustomCategory, "id" | "order"> & { id?: string }) => void;
+  updateCategory: (id: string, patch: Partial<CustomCategory>) => void;
+  removeCategory: (id: string) => void;
+  addSite: (s: Omit<CustomSite, "id"> & { id?: string }) => void;
+  updateSite: (id: string, patch: Partial<CustomSite>) => void;
+  removeSite: (id: string) => void;
+  reorderCategories: (ids: string[]) => void;
+  setLayout: (l: LayoutMode) => void;
+  setPrivatePwd: (pwd: string) => void;
+  unlockPrivate: (pwd: string) => boolean;
+  lockPrivate: () => void;
+  patchHealth: (patch: HealthInfo) => void;
+  wipe: () => void;
+  exportJSON: () => string;
+  importJSON: (raw: string) => boolean;
 }
 
-const DEFAULT_BG: BgConfig = { key: "default", opacity: 0 };
-
-export const useUserStore = create<UserState>((set, get) => ({
-  // ===== 收藏 =====
-  favorites: safeGet<string[]>(LS.favorites, []),
-  toggleFavorite: (siteId) => {
-    const prev = get().favorites;
-    const next = prev.includes(siteId)
-      ? prev.filter((id) => id !== siteId)
-      : [...prev, siteId];
-    set({ favorites: next });
-    safeSet(LS.favorites, next);
-    logger.info("UserStore", "切换收藏", { siteId, favorited: !prev.includes(siteId) });
-  },
-  isFavorite: (siteId) => get().favorites.includes(siteId),
-
-  // ===== 访问统计 =====
-  visitStats: safeGet<Record<string, VisitRecord>>(LS.stats, {}),
-  recordVisit: (siteId) => {
-    const prev = get().visitStats;
-    const existing = prev[siteId];
-    const record: VisitRecord = {
-      siteId,
-      count: (existing?.count ?? 0) + 1,
-      lastVisit: Date.now(),
-    };
-    const next = { ...prev, [siteId]: record };
-    set({ visitStats: next });
-    safeSet(LS.stats, next);
-  },
-  clearStats: () => {
-    set({ visitStats: {} });
-    safeSet(LS.stats, {});
-    logger.info("UserStore", "清空访问统计");
-  },
-  getTopSites: (limit = 10) => {
-    const stats = get().visitStats;
-    return Object.values(stats)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, limit);
-  },
-
-  // ===== 自定义背景 =====
-  bgConfig: safeGet<BgConfig>(LS.bg, DEFAULT_BG),
-  setBgKey: (key) => {
-    const next = { ...get().bgConfig, key };
-    set({ bgConfig: next });
-    safeSet(LS.bg, next);
-    applyBg(next);
-  },
-  setBgCustomUrl: (url) => {
-    const next = { ...get().bgConfig, key: "custom" as BgKey, customUrl: url };
-    set({ bgConfig: next });
-    safeSet(LS.bg, next);
-    applyBg(next);
-  },
-  setBgOpacity: (opacity) => {
-    const next = { ...get().bgConfig, opacity };
-    set({ bgConfig: next });
-    safeSet(LS.bg, next);
-    applyBg(next);
-  },
-  resetBg: () => {
-    set({ bgConfig: DEFAULT_BG });
-    safeSet(LS.bg, DEFAULT_BG);
-    applyBg(DEFAULT_BG);
-  },
-}));
-
-// ============================================================
-// 背景预设：CSS 渐变（无需外部图片，秒加载）
-// ============================================================
-export const BG_PRESETS: Record<Exclude<BgKey, "default" | "custom">, string> = {
-  stars:
-    "radial-gradient(ellipse at top, #1a1a2e 0%, #0a0a1a 50%, #000000 100%), radial-gradient(circle at 20% 30%, rgba(99,102,241,0.15) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(236,72,153,0.1) 0%, transparent 40%)",
-  aurora:
-    "linear-gradient(135deg, #0b1220 0%, #0d2818 30%, #0a1a2e 60%, #08111f 100%), radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.2) 0%, transparent 60%)",
-  ocean:
-    "linear-gradient(180deg, #001220 0%, #003049 40%, #00496d 70%, #006d8a 100%), radial-gradient(circle at 30% 80%, rgba(14,165,233,0.15) 0%, transparent 50%)",
-  sunset:
-    "linear-gradient(180deg, #1a0a2e 0%, #2d1b3d 25%, #4a1942 50%, #6b2c5a 75%, #c2453e 100%), radial-gradient(circle at 70% 90%, rgba(251,146,60,0.2) 0%, transparent 50%)",
-  forest:
-    "linear-gradient(180deg, #0a1f0a 0%, #0d2818 30%, #1a3a1a 60%, #0d1f0d 100%), radial-gradient(circle at 40% 60%, rgba(34,197,94,0.12) 0%, transparent 50%)",
-  abstract:
-    "conic-gradient(from 45deg at 50% 50%, #1a0a2e, #16213e, #0f3460, #533483, #1a0a2e), radial-gradient(circle at 60% 40%, rgba(99,102,241,0.12) 0%, transparent 50%)",
-};
-
-/** 将背景配置应用到 DOM */
-function applyBg(config: BgConfig) {
-  const el = document.getElementById("app-bg-layer");
-  if (!el) return;
-
-  if (config.key === "default") {
-    el.style.background = "";
-    el.style.opacity = "0";
-    return;
-  }
-
-  if (config.key === "custom" && config.customUrl) {
-    el.style.background = `url(${config.customUrl}) center/cover no-repeat fixed`;
-    el.style.opacity = String(config.opacity || 0.3);
-    return;
-  }
-
-  const preset = BG_PRESETS[config.key as Exclude<BgKey, "default" | "custom">];
-  if (preset) {
-    el.style.background = preset;
-    el.style.opacity = String(config.opacity || 0.5);
-  }
+function simpleHash(s: string): string {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return "p" + Math.abs(h).toString(36);
 }
 
-// 初始化时应用背景
-if (typeof window !== "undefined") {
-  // 等 DOM ready 后应用
-  const init = () => applyBg(useUserStore.getState().bgConfig);
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
-}
+export const useUserStore = create<UserState>()(
+  persist(
+    (set, get) => ({
+      favorites: [],
+      favoriteOrder: [],
+      visits: [],
+      customCats: [],
+      customSites: [],
+      categoryOrder: [],
+      layout: "comfy",
+      privatePwdHash: "",
+      privateUnlocked: false,
+      health: {},
+      setFavorites: (f) => set({ favorites: f, favoriteOrder: f }),
+      toggleFavorite: (id) => set((s) => {
+        const inFav = s.favorites.includes(id);
+        const favorites = inFav ? s.favorites.filter((x) => x !== id) : [...s.favorites, id];
+        return { favorites, favoriteOrder: favorites };
+      }),
+      reorderFavorites: (order) => set({ favoriteOrder: order }),
+      recordVisit: (v) => set((s) => {
+        const idx = s.visits.findIndex((x) => x.siteId === v.siteId);
+        const visits = s.visits.slice();
+        if (idx >= 0) {
+          visits[idx] = { ...visits[idx], count: visits[idx].count + 1, lastAt: Date.now() };
+        } else {
+          visits.push({ ...v, count: 1, lastAt: Date.now() });
+        }
+        return { visits };
+      }),
+      clearStats: () => set({ visits: [], health: {} }),
+      addCategory: (c) => set((s) => ({
+        customCats: [...s.customCats, { ...c, id: c.id || "cat_" + Math.random().toString(36).slice(2, 8), order: s.customCats.length }],
+      })),
+      updateCategory: (id, patch) => set((s) => ({
+        customCats: s.customCats.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+      })),
+      removeCategory: (id) => set((s) => ({
+        customCats: s.customCats.filter((x) => x.id !== id),
+        customSites: s.customSites.filter((x) => x.categoryId !== id),
+        categoryOrder: s.categoryOrder.filter((x) => x !== id),
+      })),
+      addSite: (site) => set((s) => ({
+        customSites: [...s.customSites, { ...site, id: site.id || "st_" + Math.random().toString(36).slice(2, 10) }],
+      })),
+      updateSite: (id, patch) => set((s) => ({
+        customSites: s.customSites.map((x) => (x.id === id ? { ...x, ...patch } : x)),
+      })),
+      removeSite: (id) => set((s) => ({
+        customSites: s.customSites.filter((x) => x.id !== id),
+        favorites: s.favorites.filter((x) => x !== id),
+      })),
+      reorderCategories: (ids) => set({ categoryOrder: ids }),
+      setLayout: (layout) => set({ layout }),
+      setPrivatePwd: (pwd) => set({ privatePwdHash: simpleHash(pwd) }),
+      unlockPrivate: (pwd) => {
+        const ok = simpleHash(pwd) === get().privatePwdHash;
+        if (ok) set({ privateUnlocked: true });
+        return ok;
+      },
+      lockPrivate: () => set({ privateUnlocked: false }),
+      patchHealth: (patch) => set((s) => ({ health: { ...s.health, ...patch } })),
+      wipe: () => set({
+        favorites: [], favoriteOrder: [], visits: [], customCats: [], customSites: [],
+        categoryOrder: [], layout: "comfy", privatePwdHash: "", privateUnlocked: false, health: {},
+      }),
+      exportJSON: () => {
+        const { favorites, favoriteOrder, visits, customCats, customSites, categoryOrder, layout, privatePwdHash, health } = get();
+        return JSON.stringify({ v: 3, favorites, favoriteOrder, visits, customCats, customSites, categoryOrder, layout, privatePwdHash, health }, null, 2);
+      },
+      importJSON: (raw) => {
+        try {
+          const d = JSON.parse(raw);
+          if (!d || typeof d !== "object") return false;
+          set({
+            favorites: Array.isArray(d.favorites) ? d.favorites : [],
+            favoriteOrder: Array.isArray(d.favoriteOrder) ? d.favoriteOrder : d.favorites ?? [],
+            visits: Array.isArray(d.visits) ? d.visits : [],
+            customCats: Array.isArray(d.customCats) ? d.customCats : [],
+            customSites: Array.isArray(d.customSites) ? d.customSites : [],
+            categoryOrder: Array.isArray(d.categoryOrder) ? d.categoryOrder : [],
+            layout: ["comfy", "compact", "large"].includes(d.layout) ? d.layout : "comfy",
+            privatePwdHash: typeof d.privatePwdHash === "string" ? d.privatePwdHash : "",
+            health: d.health && typeof d.health === "object" ? d.health : {},
+            privateUnlocked: false,
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+    }),
+    { name: "nh.user.v3" },
+  ),
+);

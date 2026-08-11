@@ -1,47 +1,79 @@
+import { useMemo } from "react";
+import * as Icons from "lucide-react";
+import { CATEGORIES } from "@/config/sites";
 import { useAppStore } from "@/stores/useAppStore";
 import { useI18n } from "@/i18n";
-import { CATEGORIES, SITES } from "@/config/sites";
-import type { SiteCategory } from "@/shared/types";
+import { useUserStore } from "@/stores/useUserStore";
+import type { LucideIcon } from "lucide-react";
 
-export default function CategoryTabs() {
-  const active = useAppStore((s) => s.activeCategory);
-  const setActive = useAppStore((s) => s.setActiveCategory);
+const catIconMap: Record<string, string> = {
+  all: "LayoutGrid", search: "Search", dev: "Code2", ai: "Bot",
+  design: "Palette", social: "MessageCircle", video: "Video",
+  learn: "BookOpen", office: "Briefcase", weather: "CloudSun", tools: "Wrench",
+};
+
+const icon = (n: string): LucideIcon => (Icons as unknown as Record<string, LucideIcon>)[n] ?? Icons.Globe;
+
+interface Props {
+  onOpenEdit?: () => void;
+}
+
+export default function CategoryTabs({ onOpenEdit }: Props) {
+  const active = useAppStore((s) => s.activeCategoryId);
+  const setActive = useAppStore((s) => s.setActiveCategoryId);
   const { t } = useI18n();
+  const customCats = useUserStore((s) => s.customCats);
+  const unlocked = useUserStore((s) => s.privateUnlocked);
 
-  const counts = SITES.reduce<Record<string, number>>((acc, s) => {
-    acc[s.category] = (acc[s.category] || 0) + 1;
-    return acc;
-  }, {});
-  counts["all"] = SITES.length;
+  const allCats = useMemo(() => {
+    type Cat = { id: string; name: string; iconName: string; private?: boolean };
+    const built: Cat[] = CATEGORIES.map((c) => ({
+      id: c.key, name: t.cats[c.key as keyof typeof t.cats] ?? c.label, iconName: catIconMap[c.key] || "Folder",
+    }));
+    const cus: Cat[] = customCats.map((c) => ({
+      id: c.id, name: c.name, iconName: c.iconName, private: c.private,
+    }));
+    return [...built, ...cus];
+  }, [t, customCats]);
 
   return (
-    <div className="w-full min-w-0 animate-fade-in-up" style={{ animationDelay: "160ms" }}>
-      <div className="-mx-1 flex min-w-0 gap-2 overflow-x-auto px-1 py-1 sm:justify-center">
-        {CATEGORIES.map((c, idx) => {
-          const count = counts[c.key] ?? 0;
-          const isActive = active === c.key;
+    <div className="mx-auto w-full max-w-[1200px]">
+      <div className="no-scrollbar flex items-end gap-2 overflow-x-auto pb-2" role="tablist">
+        {allCats.map((c, i) => {
+          const I = icon(c.iconName);
+          const isActive = active === c.id;
+          const isPrivate = c.private && !unlocked;
           return (
             <button
-              type="button"
-              key={c.key}
-              onClick={() => setActive(c.key as SiteCategory)}
-              className={`brand-pill shrink-0 ${isActive ? "is-active" : ""}`}
-              style={{ animation: `fadeInUp .55s ${200 + idx * 40}ms both` }}
+              key={c.id}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setActive(c.id)}
+              style={{ animation: `fadeInUp .4s ${i * 40}ms both` }}
+              className={`group relative shrink-0 inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-300 ${
+                isActive
+                  ? "border-transparent bg-brand-gradient text-white shadow-glow -translate-y-0.5"
+                  : "border-stroke bg-bg-elevate/40 text-ink-muted hover:border-stroke-hover hover:text-ink hover:-translate-y-0.5"
+              } ${isPrivate ? "opacity-50 grayscale" : ""}`}
+              title={isPrivate ? t.user.guestHint : c.name}
             >
-              <span className="text-base leading-none" aria-hidden>
-                {c.icon}
-              </span>
-              <span>{t.categories[c.key as keyof typeof t.categories]}</span>
-              <span
-                className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] ${
-                  isActive ? "bg-white/25 text-white" : "bg-white/10 text-ink-subtle"
-                }`}
-              >
-                {count}
-              </span>
+              <I size={16} />
+              <span>{c.name}</span>
+              {c.private && <Icons.Lock size={12} className={unlocked ? "text-emerald-300" : "text-rose-300"} />}
             </button>
           );
         })}
+
+        {onOpenEdit && (
+          <button
+            onClick={onOpenEdit}
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-xl border border-dashed border-stroke px-3 py-2 text-sm text-ink-muted transition-all hover:border-brand-primary hover:text-ink hover:bg-white/5"
+            title={t.custom.title}
+          >
+            <Icons.Settings2 size={14} />
+            <span className="hidden sm:inline">{t.custom.title}</span>
+          </button>
+        )}
       </div>
     </div>
   );

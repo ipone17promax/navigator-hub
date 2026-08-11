@@ -1,165 +1,79 @@
-﻿import { useMemo } from "react";
 import * as Icons from "lucide-react";
-import { useUserStore } from "@/stores/useUserStore";
-import { SITES } from "@/config/sites";
 import { useI18n } from "@/i18n";
-
-function timeAgo(ts: number, locale: string): string {
-  const diff = Date.now() - ts;
-  const min = Math.floor(diff / 60000);
-  if (min < 1) return locale === "zh" ? "刚刚" : "just now";
-  if (min < 60) return locale === "zh" ? `${min}分钟前` : `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return locale === "zh" ? `${hr}小时前` : `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  return locale === "zh" ? `${day}天前` : `${day}d ago`;
-}
+import { useUserStore } from "@/stores/useUserStore";
 
 export default function StatsPanel() {
-  const { t, locale } = useI18n();
-  const { visitStats, clearStats } = useUserStore();
+  const { t } = useI18n();
+  const visits = useUserStore((s) => s.visits);
+  const clear = useUserStore((s) => s.clearStats);
 
-  const siteMap = useMemo(() => {
-    const map: Record<string, (typeof SITES)[number]> = {};
-    for (const s of SITES) map[s.id] = s;
-    return map;
-  }, []);
-
-  const topSites = useMemo(() => {
-    return Object.values(visitStats)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
-  }, [visitStats]);
-
-  const totalVisits = useMemo(
-    () => Object.values(visitStats).reduce((sum, r) => sum + r.count, 0),
-    [visitStats],
-  );
-
-  const recentSites = useMemo(() => {
-    return Object.values(visitStats)
-      .sort((a, b) => b.lastVisit - a.lastVisit)
-      .slice(0, 5);
-  }, [visitStats]);
-
-  if (totalVisits === 0) {
-    return (
-      <div className="glass-card flex flex-col items-center justify-center gap-3 py-12 text-center animate-fade-in-up">
-        <Icons.BarChart3 size={40} className="text-ink-subtle" strokeWidth={1.25} />
-        <p className="text-sm text-ink-muted">{t.statsNoData}</p>
-      </div>
-    );
-  }
-
-  const maxCount = topSites[0]?.count ?? 1;
+  const total = visits.reduce((a, b) => a + b.count, 0);
+  const top = [...visits].sort((a, b) => b.count - a.count).slice(0, 8);
+  const recent = [...visits].sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0)).slice(0, 5);
+  const max = Math.max(1, ...top.map((v) => v.count));
 
   return (
-    <div className="glass-card p-5 animate-fade-in-up">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Icons.BarChart3 size={16} className="text-brand-primary" />
-          <span className="text-sm font-semibold text-ink">{t.statsTitle}</span>
-        </div>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-full bg-brand-gradient/20 px-3 py-1 text-xs text-brand-primary">
-            <Icons.MousePointerClick size={12} />
-            <span className="font-semibold">{totalVisits}</span>
-            <span className="opacity-70">{t.statsVisits}</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-gradient shadow-glow">
+            <Icons.BarChart3 size={18} className="text-white" />
           </div>
-          <button
-            onClick={clearStats}
-            className="flex items-center gap-1 rounded-md px-2 py-1 text-[11px] text-ink-subtle transition-colors hover:text-red-400"
-            title={t.statsClear}
-          >
-            <Icons.Trash2 size={11} />
-            {t.statsClear}
-          </button>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-ink-subtle">{t.stats.total}</p>
+            <p className="text-2xl font-bold text-ink tabular-nums">{total.toLocaleString()}<span className="ml-1 text-sm font-medium text-ink-muted">{t.stats.visits}</span></p>
+          </div>
         </div>
+        <button onClick={() => clear()}
+          className="inline-flex items-center gap-1 rounded-lg border border-stroke px-2.5 py-1.5 text-xs text-ink-muted transition-colors hover:bg-white/5 hover:text-ink">
+          <Icons.Trash2 size={14} /> {t.stats.clear}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <div>
-          <p className="mb-2.5 text-xs font-medium text-ink-muted">{t.statsTopSites}</p>
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink-subtle">{t.stats.top}</p>
+        {top.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-stroke bg-white/[0.02] p-6 text-center text-xs text-ink-muted">{t.stats.noData}</div>
+        ) : (
           <div className="space-y-2">
-            {topSites.map((rec, idx) => {
-              const site = siteMap[rec.siteId];
-              if (!site) return null;
-              const pct = (rec.count / maxCount) * 100;
-              return (
-                <a
-                  key={rec.siteId}
-                  href={site.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2.5"
-                  title={`${site.name} · ${rec.count} ${t.statsVisits}`}
-                >
-                  <span className="w-5 text-right text-[11px] font-mono text-ink-subtle">
-                    {idx + 1}
-                  </span>
-                  <span
-                    className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-[10px] font-bold"
-                    style={{ background: `${site.accent}22`, color: site.accent }}
-                  >
-                    {site.name.charAt(0)}
-                  </span>
-                  <div className="flex-1 overflow-hidden">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="truncate text-ink group-hover:text-brand-primary">
-                        {site.name}
-                      </span>
-                      <span className="ml-2 flex-shrink-0 font-mono text-ink-muted">
-                        {rec.count}
-                      </span>
-                    </div>
-                    <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-white/5">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{
-                          width: `${pct}%`,
-                          background: `linear-gradient(90deg, ${site.accent}, ${site.accent}88)`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-2.5 text-xs font-medium text-ink-muted">{t.statsRecent}</p>
-          <div className="space-y-1.5">
-            {recentSites.map((rec) => {
-              const site = siteMap[rec.siteId];
-              if (!site) return null;
-              return (
-                <a
-                  key={rec.siteId}
-                  href={site.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5"
-                >
-                  <span
-                    className="h-1.5 w-1.5 flex-shrink-0 rounded-full"
-                    style={{ background: site.accent }}
+            {top.map((v, i) => (
+              <div key={v.siteId} className="group flex items-center gap-3">
+                <span className="w-6 text-right font-mono text-xs text-ink-subtle">{i + 1}</span>
+                <div className="relative h-6 flex-1 overflow-hidden rounded-lg bg-white/5">
+                  <div
+                    className="h-full rounded-lg bg-brand-gradient transition-all duration-500 ease-out"
+                    style={{ width: `${(v.count / max) * 100}%` }}
                   />
-                  <span className="flex-1 truncate text-xs text-ink group-hover:text-brand-primary">
-                    {site.name}
-                  </span>
-                  <span className="flex-shrink-0 text-[10px] text-ink-subtle">
-                    {rec.count} {t.statsVisits}
-                  </span>
-                  <span className="flex-shrink-0 text-[10px] text-ink-subtle">
-                    {timeAgo(rec.lastVisit, locale)}
-                  </span>
-                </a>
-              );
-            })}
+                  <div className="absolute inset-0 flex items-center justify-between px-3">
+                    <span className="truncate text-[12px] font-medium text-ink drop-shadow">{v.siteName}</span>
+                    <span className="shrink-0 text-[11px] text-white/90 tabular-nums drop-shadow">{v.count}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
+      </div>
+
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink-subtle">{t.stats.recent}</p>
+        {recent.length === 0 ? (
+          <p className="text-xs text-ink-muted">—</p>
+        ) : (
+          <div className="space-y-1.5">
+            {recent.map((v) => (
+              <a key={v.siteId + v.lastAt}
+                href={v.url.startsWith("http") ? v.url : "https://" + v.url}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-between rounded-lg border border-stroke bg-bg-elevate/40 px-3 py-1.5 text-xs transition-colors hover:bg-white/5">
+                <span className="truncate text-ink-muted">{v.siteName}</span>
+                <span className="shrink-0 font-mono text-ink-subtle">
+                  {v.lastAt ? new Date(v.lastAt).toLocaleTimeString() : "—"}
+                </span>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

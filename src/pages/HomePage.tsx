@@ -1,240 +1,211 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as Icons from "lucide-react";
+import { useI18n } from "@/i18n";
 import GreetingClock from "@/components/GreetingClock";
-import ThemeSwitcher from "@/components/ThemeSwitcher";
 import SearchHero from "@/components/SearchHero";
-import SearchTabs from "@/components/SearchTabs";
 import CategoryTabs from "@/components/CategoryTabs";
+import QuickTools from "@/components/QuickTools";
 import SiteGrid from "@/components/SiteGrid";
 import AppFooter from "@/components/AppFooter";
-import WeatherWidget from "@/components/WeatherWidget";
-import NewsStream from "@/components/NewsStream";
-import MiniCalendar from "@/components/MiniCalendar";
-import QuickTools from "@/components/QuickTools";
-import StockWidget from "@/components/StockWidget";
-import FeaturedHighlights from "@/components/FeaturedHighlights";
 import BottomNavBar from "@/components/BottomNavBar";
-import FontSizeToggle from "@/components/FontSizeToggle";
-import InternalDebugPanel from "@/components/InternalDebugPanel";
-import LoginCard from "@/components/LoginCard";
-import BackgroundSwitcher from "@/components/BackgroundSwitcher";
-import StatsPanel from "@/components/StatsPanel";
-import { useI18n } from "@/i18n";
+import CommandPalette from "@/components/CommandPalette";
+import { HighFreqBar } from "@/components/HealthAndFreq";
+import SettingsDrawer from "@/components/SettingsDrawer";
 import { useAppStore } from "@/stores/useAppStore";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { SITES, CATEGORIES } from "@/config/sites";
+import { useUserStore } from "@/stores/useUserStore";
 
-/**
- * 主页：基于服务器端身份验证的三态渲染
- *
- * - loading：身份未定时渲染加载占位，避免提前露出管理员内容
- * - admin  ：标识 9B1G01-9B1G99 通过服务器端验证，渲染完整管理员界面
- *            （含 StockWidget 行情、InternalDebugPanel 调试面板、管理员徽章）
- * - guest  ：未授权通用用户，渲染精简公开界面 + 管理员入口按钮
- *
- * 安全保证：
- *   管理员专属模块（StockWidget / InternalDebugPanel）在前端仅在 status==="admin"
- *   时挂载；身份由 Netlify Edge Function 在服务器端用 HMAC 签名 Cookie 校验，
- *   客户端无法伪造。
- */
 export default function HomePage() {
-  const status = useAuthStore((s) => s.status);
-  const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin);
-  const [loginOpen, setLoginOpen] = useState(false);
-  const { t } = useI18n();
-  const locale = useAppStore((s) => s.locale);
-  const setLocale = useAppStore((s) => s.setLocale);
+  const { t, toggle, toggleTheme, locale } = useI18n();
+  const [loaded, setLoaded] = useState(false);
+  const authStatus = useAuthStore((s) => s.status);
+  const setCat = useAppStore((s) => s.setActiveCategoryId);
+  const activeCat = useAppStore((s) => s.activeCategoryId);
+  const customSites = useUserStore((s) => s.customSites);
+  const customCats = useUserStore((s) => s.customCats);
+  const recordVisit = useUserStore((s) => s.recordVisit);
+  const favorites = useUserStore((s) => s.favorites);
+  const favOrder = useUserStore((s) => s.favoriteOrder);
+  const unlockPriv = useUserStore((s) => s.unlockPrivate);
+  const unlocked = useUserStore((s) => s.privateUnlocked);
 
-  // 身份未定时：渲染最小化加载屏，不渲染任何业务内容
-  if (status === "loading") {
-    return <LoadingScreen />;
-  }
+  const [drawer, setDrawer] = useState<{ open: boolean; tab: "bg" | "theme" | "data" | "stats" | "custom" }>({ open: false, tab: "bg" });
 
-  const isAdmin = status === "admin";
+  useEffect(() => {
+    const t1 = setTimeout(() => setLoaded(true), 400);
+    return () => clearTimeout(t1);
+  }, []);
+
+  // 快捷键：全局监听
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const typing = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable;
+
+      // 数字键 1-9：打开当前分类或收藏中的站点
+      if (!typing && /^[1-9]$/.test(e.key)) {
+        const n = parseInt(e.key, 10);
+        e.preventDefault();
+        const favIds = [...favOrder.filter((x) => favorites.includes(x)), ...favorites.filter((x) => !favOrder.includes(x))];
+        const openByIndex = (list: any[]) => {
+          const s = list[n - 1];
+          if (!s) return;
+          const u = s.url.startsWith("http") ? s.url : "https://" + s.url;
+          recordVisit({ siteId: s.id, siteName: s.name, url: s.url, categoryId: s.categoryId || (s as any).category });
+          window.open(u, "_blank", "noopener,noreferrer");
+        };
+        // 如果有收藏区且够数，优先打开收藏
+        if (favIds.length >= n) {
+          const all = [
+            ...SITES.map((s) => ({ ...s })),
+            ...customSites.map((s) => ({ id: s.id, name: s.name, url: s.url, desc: s.desc || "", iconName: s.icon || "Globe", categoryId: (s as any).categoryId })),
+          ];
+          const target = all.find((x) => x.id === favIds[n - 1]);
+          if (target) {
+            const u = target.url.startsWith("http") ? target.url : "https://" + target.url;
+            recordVisit({ siteId: target.id, siteName: target.name, url: target.url, categoryId: (target as any).categoryId || (target as any).category });
+            window.open(u, "_blank", "noopener,noreferrer");
+            return;
+          }
+        }
+        // 否则打开当前分类的第 n 个
+        const all = [
+          ...SITES.map((s) => ({ ...s, categoryId: s.category as string, desc: s.description })),
+          ...customSites.map((s) => ({ id: s.id, name: s.name, url: s.url, desc: s.desc || "", iconName: s.icon || "Globe", categoryId: (s as any).categoryId })),
+        ];
+        const list = activeCat === "all" ? all : all.filter((s: any) => ((s as any).categoryId || s.category) === activeCat);
+        openByIndex(list);
+        return;
+      }
+      if (!typing && (e.key === "L" || e.key === "l")) { e.preventDefault(); toggle(); }
+      if (!typing && (e.key === "T" || e.key === "t")) { e.preventDefault(); toggleTheme(); }
+      if (!typing && (e.key === "[")) {
+        e.preventDefault();
+        const order = ["all", ...CATEGORIES.map((c) => c.key), ...customCats.map((c) => c.id)];
+        const i = order.indexOf(activeCat);
+        setCat(order[Math.max(i - 1, 0)]);
+      }
+      if (!typing && (e.key === "]")) {
+        e.preventDefault();
+        const order = ["all", ...CATEGORIES.map((c) => c.key), ...customCats.map((c) => c.id)];
+        const i = order.indexOf(activeCat);
+        setCat(order[Math.min(i + 1, order.length - 1)]);
+      }
+      if (!typing && (e.key === "P" || e.key === "p")) {
+        e.preventDefault();
+        if (unlocked) useUserStore.getState().lockPrivate();
+        else {
+          const p = prompt(locale === "zh" ? "输入隐私密码解锁" : "Enter privacy password");
+          if (p) unlockPriv(p);
+        }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeCat, customCats, customSites, favorites, favOrder, recordVisit, setCat, toggle, toggleTheme, unlocked, unlockPriv, locale]);
 
   return (
-    <div className="cyber-bg">
-      <div className="container mx-auto max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8">
-        {/* ============== 顶栏 ============== */}
-        <header className="flex w-full items-center justify-between pb-3">
-          <BrandLogo />
+    <div className="relative min-h-screen w-full overflow-x-hidden text-ink">
+      {/* 头部：品牌区 + 快捷动作 */}
+      <header className="relative z-20 px-5 pt-8">
+        <div className="mx-auto flex w-full max-w-[1200px] items-center justify-between">
           <div className="flex items-center gap-3">
-            <QuickDate />
-            <FontSizeToggle />
-            <ThemeSwitcher />
-            <BackgroundSwitcher />
-            {/* 语言切换 */}
-            <div className="flex items-center gap-1 rounded-lg border border-stroke bg-bg-elevate/60 px-1 py-1.5">
-              {(["zh", "en"] as const).map((l) => (
-                <button
-                  key={l}
-                  onClick={() => setLocale(l)}
-                  className={`rounded px-2 py-0.5 text-[11px] font-medium transition-all ${
-                    locale === l
-                      ? "bg-brand-gradient text-white"
-                      : "text-ink-muted hover:text-ink"
-                  }`}
-                >
-                  {l === "zh" ? "中" : "EN"}
-                </button>
-              ))}
+            <div className="relative">
+              <div className="absolute -inset-2 rounded-2xl bg-brand-gradient opacity-30 blur-xl animate-pulse-glow" />
+              <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-gradient shadow-glow">
+                <Icons.Share2 size={20} className="text-white" />
+              </div>
             </div>
-            {isAdmin ? (
-              isSuperAdmin ? <SuperAdminBadge /> : <AdminBadge />
-            ) : (
-              <AdminEntryButton onClick={() => setLoginOpen(true)} />
-            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-xl font-bold text-brand-gradient">{t.appName}</h1>
+                {authStatus === "admin" ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                    <Icons.ShieldCheck size={10} /> {t.adminBadge}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                    <Icons.UserX size={10} /> {t.guestBadge}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-ink-subtle">{t.brandSub}</p>
+            </div>
           </div>
-        </header>
 
-        {/* ============== 搜索区域 + 视觉预览 ============== */}
-        <section className="mb-6 mt-2 flex flex-col items-center gap-3">
-          <GreetingClock />
-          <div className="w-full max-w-[880px]">
-            <SearchHero />
+          <div className="hidden items-center gap-1 md:flex">
+            <button onClick={toggle}
+              className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-xs font-semibold text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink">
+              <Icons.Languages size={14} /> {locale === "zh" ? "EN" : "中"}
+            </button>
+            <button onClick={toggleTheme}
+              className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+              title={t.theme.title}>
+              <Icons.Moon size={14} />
+            </button>
+            <button onClick={() => setDrawer({ open: true, tab: "bg" })}
+              className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+              title={t.bg.title}>
+              <Icons.Palette size={14} />
+            </button>
+            <button onClick={() => setDrawer({ open: true, tab: "stats" })}
+              className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+              title={t.stats.title}>
+              <Icons.BarChart3 size={14} />
+            </button>
+            <button onClick={() => setDrawer({ open: true, tab: "custom" })}
+              className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+              title={t.custom.title}>
+              <Icons.FolderPlus size={14} />
+            </button>
+            <button onClick={() => setDrawer({ open: true, tab: "data" })}
+              className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+              title={t.sync.title}>
+              <Icons.CloudCog size={14} />
+            </button>
           </div>
-          <SearchTabs />
-          <FeaturedHighlights />
-        </section>
-
-        {/* ============== 两栏布局（原右栏热搜榜已移除）============== */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr]">
-          {/* ===== 左栏 ===== */}
-          <aside className="flex min-w-0 flex-col gap-4">
-            <WeatherWidget />
-            <MiniCalendar />
-            <QuickTools />
-          </aside>
-
-          {/* ===== 中栏（min-w-0 防止 grid item 被内容撑开导致水平溢出） ===== */}
-          <main className="flex min-w-0 flex-col gap-4">
-            <NewsStream />
-            <CategoryTabs />
-            <SiteGrid />
-          </main>
         </div>
+      </header>
 
-        {/* ===== 行情组件：管理员专属，整行显示 ===== */}
-        {isAdmin && (
-          <div className="mt-2 w-full max-w-[1440px]">
-            <StockWidget />
+      {/* 加载屏 */}
+      {!loaded && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-bg-base">
+          <div className="flex flex-col items-center gap-4 animate-fade-in-up">
+            <div className="relative">
+              <div className="absolute -inset-4 rounded-3xl bg-brand-gradient opacity-40 blur-2xl animate-pulse-glow" />
+              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-glow-lg">
+                <Icons.Share2 size={30} className="text-white" />
+              </div>
+            </div>
+            <p className="text-sm text-ink-muted">{t.loading}</p>
+            <div className="h-1 w-40 overflow-hidden rounded-full bg-white/5">
+              <div className="h-full w-1/3 animate-indeterminate bg-brand-gradient" />
+            </div>
           </div>
-        )}
-
-        {/* ===== 访问统计面板 ===== */}
-        <div className="mt-2 w-full max-w-[1440px]">
-          <StatsPanel />
         </div>
+      )}
 
-        {/* ===== 底部快速导航栏：可横向拖动 ===== */}
-        <div className="mt-4 w-full max-w-[1440px]">
-          <BottomNavBar />
-        </div>
-
+      <main className="relative z-10 flex flex-col gap-10 px-5 pb-32 pt-10">
+        <GreetingClock />
+        <SearchHero />
+        <HighFreqBar />
+        <QuickTools />
+        <CategoryTabs onOpenEdit={() => setDrawer({ open: true, tab: "custom" })} />
+        <SiteGrid />
         <AppFooter />
+      </main>
 
-        {/* 内部调试面板：仅特级管理员可见 */}
-        {isAdmin && isSuperAdmin && <InternalDebugPanel />}
+      <BottomNavBar
+        onOpenBg={() => setDrawer({ open: true, tab: "bg" })}
+        onOpenTheme={() => setDrawer({ open: true, tab: "theme" })}
+        onOpenSync={() => setDrawer({ open: true, tab: "data" })}
+        onOpenStats={() => setDrawer({ open: true, tab: "stats" })}
+        onOpenCustom={() => setDrawer({ open: true, tab: "custom" })}
+      />
 
-        {/* 管理员登录弹窗：仅 guest 状态触发 */}
-        {loginOpen && !isAdmin && <LoginCard onClose={() => setLoginOpen(false)} />}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// 加载屏：身份未定时展示
-// ============================================================
-function LoadingScreen() {
-  const { t } = useI18n();
-  return (
-    <div className="cyber-bg flex min-h-screen items-center justify-center">
-      <div className="text-center animate-fade-in-up">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-400" />
-        <p className="mt-4 text-sm text-ink-muted">{t.loading}</p>
-        <p className="mt-1 text-[11px] text-ink-subtle">{t.loadingChannel}</p>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// 管理员徽章：admin 状态下显示
-// ============================================================
-function AdminBadge() {
-  const { t } = useI18n();
-  return (
-    <div
-      className="flex items-center gap-1.5 rounded-lg border border-brand-primary/40 bg-brand-primary/10 px-2.5 py-1.5 text-xs text-brand-primary"
-      title={t.admin}
-    >
-      <Icons.ShieldCheck size={14} />
-      <span className="font-semibold">{t.admin}</span>
-    </div>
-  );
-}
-
-// ============================================================
-// 特级管理员徽章：password-01 专属
-// ============================================================
-function SuperAdminBadge() {
-  const { t } = useI18n();
-  return (
-    <div
-      className="flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-400/10 px-2.5 py-1.5 text-xs text-amber-400"
-      title={t.superAdmin}
-    >
-      <Icons.Crown size={14} />
-      <span className="font-semibold">{t.superAdmin}</span>
-    </div>
-  );
-}
-
-// ============================================================
-// 管理员入口按钮：guest 状态下显示，点击弹出 LoginCard
-// ============================================================
-function AdminEntryButton({ onClick }: { onClick: () => void }) {
-  const { t } = useI18n();
-  return (
-    <button
-      onClick={onClick}
-      title={t.admin}
-      className="flex items-center gap-1.5 rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-xs text-ink-muted transition-all hover:border-stroke-hover hover:text-ink"
-    >
-      <Icons.Lock size={14} />
-      <span>{t.admin}</span>
-    </button>
-  );
-}
-
-function BrandLogo() {
-  const { t } = useI18n();
-  return (
-    <div className="flex shrink-0 items-center gap-2 animate-fade-in-up">
-      <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient shadow-glow">
-        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 text-white" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-        </svg>
-        <div className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/20" />
-      </div>
-      <div className="leading-tight">
-        <div className="font-display text-[15px] font-bold tracking-wide text-ink sm:text-base">
-          Navigator<span className="text-brand-gradient">Hub</span>
-        </div>
-        <div className="text-[11px] text-ink-muted">{t.brandVersion}</div>
-      </div>
-    </div>
-  );
-}
-
-function QuickDate() {
-  const { t } = useI18n();
-  const now = new Date();
-  const dateStr = `${now.getMonth() + 1}${t.monthUnit}${now.getDate()}${t.dayUnit}`;
-  return (
-    <div className="hidden text-right sm:block">
-      <div className="text-sm font-medium text-ink">{dateStr}</div>
-      <div className="text-[11px] text-ink-subtle">{t.weekDays[now.getDay()]}</div>
+      <CommandPalette />
+      <SettingsDrawer open={drawer.open} initial={drawer.tab} onClose={() => setDrawer((s) => ({ ...s, open: false }))} />
     </div>
   );
 }
