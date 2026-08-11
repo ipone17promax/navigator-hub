@@ -96,7 +96,7 @@ export default function BackgroundSwitcher() {
         <p className="mb-2 text-xs font-semibold text-ink-subtle uppercase tracking-widest">{t.bg.presets}</p>
         <div className="grid grid-cols-5 gap-2">
           {PRESETS.map((p) => {
-            const Icon = p.icon;
+            const Icon = p.icon ?? Icons.Sparkles;
             const active = preset === p.id && !customImage;
             return (
               <button

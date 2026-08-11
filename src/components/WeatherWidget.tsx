@@ -57,7 +57,7 @@ function wmoToText(code: number, isDay: boolean): { c: string; icon: string } {
     96: { c: "雷暴伴冰雹", icon: "CloudLightning" },
     99: { c: "雷暴伴冰雹", icon: "CloudLightning" },
   };
-  return map[code] ?? { c: "未知", icon: "Cloud" };
+  const fallback = map[code]; return fallback ? fallback : { c: "未知", icon: "Cloud" };
 }
 
 /** 浏览器精确定位（会弹授权框） */
@@ -225,7 +225,7 @@ export default function WeatherWidget() {
 
   if (!data) return null;
 
-  const MainIcon = getIcon(data.icon);
+  const MainIcon = getIcon((data.icon) || "Sun");
 
   return (
     <div className="rounded-2xl border border-stroke bg-bg-elevate/60 p-4 backdrop-blur-xl transition-all duration-300 hover:border-stroke-hover">
@@ -263,7 +263,7 @@ export default function WeatherWidget() {
       {/* 4 天预报 */}
       <div className="mt-3 flex justify-between border-t border-stroke/50 pt-3">
         {data.forecast.map((f) => {
-          const FIcon = getIcon(f.icon);
+          const FIcon = getIcon((f.icon) || "Cloud");
           return (
             <div key={f.day} className="flex flex-col items-center gap-1">
               <span className="text-[11px] text-ink-subtle">{f.day}</span>

@@ -23,8 +23,8 @@ export const useAppStore = create<AppState>()(
       activeEngineId: "google",
       activeCategoryId: "all",
       commandPaletteOpen: false,
-    elderlyMode: false,
-    toggleElderlyMode: () => set((s) => ({ elderlyMode: !s.elderlyMode })),
+      elderlyMode: false,
+      toggleElderlyMode: () => set((s) => ({ elderlyMode: !s.elderlyMode })),
       setKeyword: (kw) => set({ keyword: kw }),
       setActiveEngineId: (id) => set({ activeEngineId: id }),
       setActiveCategoryId: (id) => set({ activeCategoryId: id }),
@@ -32,6 +32,6 @@ export const useAppStore = create<AppState>()(
       closeCommandPalette: () => set({ commandPaletteOpen: false }),
       toggleCommandPalette: () => set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
     }),
-    { name: "nh.app.v3", partialize: (s) => ({ activeEngineId: s.activeEngineId, activeCategoryId: s.activeCategoryId }) },
+    { name: "nh.app.v3", partialize: (s) => ({ activeEngineId: s.activeEngineId, activeCategoryId: s.activeCategoryId, elderlyMode: s.elderlyMode }) },
   ),
 );

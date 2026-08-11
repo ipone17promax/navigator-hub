@@ -63,7 +63,7 @@ export default function ThemeSwitcher() {
         <p className="mb-2 text-xs font-semibold text-ink-subtle uppercase tracking-widest">{t.theme.accent}</p>
         <div className="grid grid-cols-6 gap-2">
           {accents.map((a) => {
-            const I = a.icon;
+            const I = a.icon ?? Icons.Droplets;
             const active = accent === a.id;
             return (
               <button key={a.id} onClick={() => setAccent(a.id)}
@@ -83,7 +83,7 @@ export default function ThemeSwitcher() {
         <p className="mb-2 text-xs font-semibold text-ink-subtle uppercase tracking-widest">{t.layout.title}</p>
         <div className="grid grid-cols-3 gap-2">
           {layouts.map((l) => {
-            const I = l.icon;
+            const I = l.icon ?? Icons.LayoutGrid;
             const active = layout === l.id;
             return (
               <button key={l.id} onClick={() => setLayout(l.id)}

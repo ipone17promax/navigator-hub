@@ -182,7 +182,7 @@ export default function CommandPalette() {
                 {list.map((it) => {
                   const i = flatList.indexOf(it);
                   const active = i === idx;
-                  const Icon = it.icon;
+                  const Icon = it.icon ?? Icons.Globe;
                   return (
                     <button
                       key={it.id}

@@ -63,7 +63,7 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
 
         <div className="flex items-center gap-0.5">
           {items.map((it) => {
-            const I = it.icon;
+            const I = it.icon ?? Icons.Home;
             const active = location.pathname === it.path;
             return (
               <Link

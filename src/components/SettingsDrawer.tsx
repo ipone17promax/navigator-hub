@@ -45,7 +45,7 @@ export default function SettingsDrawer({ open, initial = "bg", onClose }: { open
         </header>
         <div className="flex gap-1 border-b border-stroke px-2 py-2 overflow-x-auto">
           {tabs.map((tt) => {
-            const I = tt.icon;
+            const I = tt.icon ?? Icons.Sliders;
             const active = tab === tt.k;
             return (
               <button key={tt.k} onClick={() => setTab(tt.k)}
