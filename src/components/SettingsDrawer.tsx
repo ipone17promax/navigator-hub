@@ -7,7 +7,7 @@ import StatsPanel from "./StatsPanel";
 import CustomEditor from "./CustomEditor";
 import ThemeSwitcher from "./ThemeSwitcher";
 
-type TabKey = "bg" | "theme" | "data" | "stats" | "custom";
+export type TabKey = "bg" | "theme" | "data" | "stats" | "custom";
 
 export default function SettingsDrawer({ open, initial = "bg", onClose }: { open: boolean; initial?: TabKey; onClose: () => void; }) {
   const [tab, setTab] = useState<TabKey>(initial);

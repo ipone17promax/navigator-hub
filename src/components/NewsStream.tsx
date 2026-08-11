@@ -1,149 +1,61 @@
-import { useState, useEffect, useRef, useCallback } from "react";
 import * as Icons from "lucide-react";
+import { useI18n } from "@/i18n";
+import { useNews } from "@/hooks/useNews";
 
-interface NewsItem {
-  title: string;
-  source: string;
-  time: string;
-  category: string;
-  url: string;
-}
-
-/** 本地兜底数据（真实新闻网站栏目链接，API 失败时使用） */
-const FALLBACK_NEWS: NewsItem[] = [
-  { title: "新华网 · 时政新闻头条速递", source: "新华网", time: "实时", category: "时政", url: "https://www.xinhuanet.com/politics/" },
-  { title: "人民网 · 国际新闻动态", source: "人民网", time: "实时", category: "国际", url: "http://world.people.com.cn/" },
-  { title: "央视网 · 新闻联播在线", source: "央视网", time: "实时", category: "时政", url: "https://news.cctv.com/" },
-  { title: "中国新闻网 · 财经资讯", source: "中新网", time: "实时", category: "财经", url: "https://www.chinanews.com.cn/finance/" },
-  { title: "澎湃新闻 · 最新深度报道", source: "澎湃", time: "实时", category: "综合", url: "https://www.thepaper.cn/" },
-  { title: "环球网 · 国际视野", source: "环球网", time: "实时", category: "国际", url: "https://www.huanqiu.com/" },
-  { title: "BBC中文 · 国际新闻", source: "BBC中文", time: "实时", category: "国际", url: "https://www.bbc.com/zhongwen/simp" },
-  { title: "路透中文网 · 全球财经", source: "路透", time: "实时", category: "财经", url: "https://cn.reuters.com/" },
-];
-
-const CAT_COLORS: Record<string, string> = {
-  时政: "text-red-400 border-red-400/30",
-  财经: "text-green-400 border-green-400/30",
-  国际: "text-blue-400 border-blue-400/30",
-  科技: "text-cyan-400 border-cyan-400/30",
-  综合: "text-purple-400 border-purple-400/30",
-};
-
-/** pubDate → 相对时间 */
-function relTime(dateStr: string): string {
-  const d = new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return "实时";
-  const diff = Date.now() - d.getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "刚刚";
-  if (m < 60) return `${m}分钟前`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}小时前`;
-  return `${Math.floor(h / 24)}天前`;
-}
-
-/** 拉 BBC 中文 RSS（经 rss2json 代理，支持 CORS，免 key） */
-async function fetchNews(): Promise<NewsItem[]> {
-  const r = await fetch(
-    "https://api.rss2json.com/v1/api.json?rss_url=https%3A%2F%2Ffeeds.bbci.co.uk%2Fzhongwen%2Fsimp%2Frss.xml&count=12",
-  );
-  if (!r.ok) throw new Error("news api failed");
-  const j = await r.json();
-  if (j.status !== "ok" || !Array.isArray(j.items)) throw new Error("bad news data");
-  return j.items.slice(0, 10).map((it: { title: string; link: string; pubDate?: string }) => ({
-    title: it.title,
-    source: "BBC中文",
-    time: it.pubDate ? relTime(it.pubDate) : "实时",
-    category: "国际",
-    url: it.link,
-  }));
-}
-
+/**
+ * 新闻速递（纯展示，数据来自 @/hooks/useNews）
+ * hook 负责：数据源切换、自动滚动、暂停、加载状态、失败兜底
+ */
 export default function NewsStream() {
-  const [items, setItems] = useState<NewsItem[]>(FALLBACK_NEWS);
-  const [paused, setPaused] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const news = await fetchNews();
-      if (news.length) setItems(news);
-    } catch {
-      /* 保留兜底数据 */
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, 300000); // 5 分钟刷新一次
-    return () => clearInterval(timer);
-  }, [load]);
-
-  // 自动滚动（鼠标悬停时暂停，让用户手动拖动）
-  useEffect(() => {
-    if (paused) return;
-    const t = setInterval(() => {
-      const el = scrollRef.current;
-      if (!el) return;
-      el.scrollTop += 1;
-      if (el.scrollTop >= el.scrollHeight / 2) el.scrollTop = 0;
-    }, 50);
-    return () => clearInterval(t);
-  }, [paused]);
+  const { t } = useI18n();
+  const { items, loading, paused, setPaused, load, scrollerRef } = useNews(true);
 
   return (
-    <div
-      className="rounded-2xl border border-stroke bg-bg-elevate/60 p-4 backdrop-blur-xl transition-all duration-300 hover:border-stroke-hover"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      <div className="mb-3 flex items-center justify-between">
+    <div className="rounded-2xl border border-stroke bg-bg-elevate/50 p-4 backdrop-blur-sm shadow-glow-xs">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Icons.Radio size={16} className={`text-red-400 ${loading ? "animate-pulse" : "animate-pulse"}`} />
-          <span className="text-sm font-semibold text-ink">资讯速递</span>
+          <Icons.Newspaper size={16} className="text-rose-400" />
+          <span className="text-[13px] font-semibold text-ink/80">{t.news.title}</span>
+          {!items.some((x) => x.updatedAt === "实时") || items.some((x) => x.source === "RSS") ? null : null}
         </div>
-        <div className="flex items-center gap-2">
-          <Icons.RefreshCw
-            size={12}
-            className={`cursor-pointer text-ink-subtle transition-colors hover:text-ink ${loading ? "animate-spin" : ""}`}
-            onClick={load}
-          />
-          <span className="text-[11px] text-ink-subtle">{paused ? "已暂停·可拖动" : "滚动中"}</span>
+        <div className="flex items-center gap-1">
+          <button onClick={() => setPaused(!paused)} className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink" title={paused ? t.common.play : t.common.pause}>
+            {paused ? <Icons.Play size={14} /> : <Icons.Pause size={14} />}
+          </button>
+          <button onClick={() => load()} className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink" title={t.common.refresh}>
+            <Icons.RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
         </div>
       </div>
 
-      <div ref={scrollRef} className="h-[240px] overflow-y-auto pr-1">
-        <div className="space-y-2">
-          {[...items, ...items].map((item, i) => (
-            <a
-              key={i}
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group flex w-full items-start gap-2 rounded-lg p-2 text-left transition-colors hover:bg-white/5"
-            >
-              <span
-                className={`mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium ${
-                  CAT_COLORS[item.category] ?? "text-ink-muted border-stroke"
-                }`}
-              >
-                {item.category}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-sm text-ink-muted transition-colors group-hover:text-ink">
-                  {item.title}
-                </p>
-                <p className="mt-0.5 text-[11px] text-ink-subtle">
-                  {item.source} · {item.time}
-                </p>
-              </div>
-            </a>
-          ))}
-        </div>
+      <div
+        ref={scrollerRef}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        className="mt-3 flex max-h-56 min-h-[12rem] flex-col gap-2 overflow-hidden pr-1 scroll-smooth"
+      >
+        {items.map((n, i) => (
+          <a
+            key={i}
+            href={n.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex cursor-pointer items-start gap-2 rounded-xl p-2 transition-colors hover:bg-white/5"
+          >
+            <span className="mt-0.5 inline-flex items-center justify-center rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-400 shrink-0">
+              {n.category}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="line-clamp-2 text-[12px] text-ink/80 transition-colors group-hover:text-ink">
+                {n.title}
+              </p>
+              <p className="mt-0.5 text-[10px] text-ink-muted">
+                {n.source} · {n.updatedAt}
+              </p>
+            </div>
+            <Icons.ExternalLink size={11} className="mt-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 text-ink-muted" />
+          </a>
+        ))}
       </div>
     </div>
   );
