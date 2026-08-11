@@ -1,16 +1,13 @@
 import { useAppStore } from "@/stores/useAppStore";
+import { useI18n } from "@/i18n";
 import { CATEGORIES, SITES } from "@/config/sites";
 import type { SiteCategory } from "@/shared/types";
 
-/**
- * 分类 Pill 标签栏：横向排列，可滚动
- * 每个 Pill 显示对应分类下网站数量
- */
 export default function CategoryTabs() {
   const active = useAppStore((s) => s.activeCategory);
   const setActive = useAppStore((s) => s.setActiveCategory);
+  const { t } = useI18n();
 
-  // 分类计数
   const counts = SITES.reduce<Record<string, number>>((acc, s) => {
     acc[s.category] = (acc[s.category] || 0) + 1;
     return acc;
@@ -34,7 +31,7 @@ export default function CategoryTabs() {
               <span className="text-base leading-none" aria-hidden>
                 {c.icon}
               </span>
-              <span>{c.label}</span>
+              <span>{t.categories[c.key as keyof typeof t.categories]}</span>
               <span
                 className={`ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] ${
                   isActive ? "bg-white/25 text-white" : "bg-white/10 text-ink-subtle"

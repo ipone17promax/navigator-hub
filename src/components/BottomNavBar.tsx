@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as Icons from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useI18n } from "@/i18n";
 import { SITES, CATEGORIES } from "@/config/sites";
 
 interface QuickLink {
@@ -50,8 +51,33 @@ function getCategoryIcon(iconKey: string): LucideIcon {
 
 export default function BottomNavBar() {
   const [activeCat, setActiveCat] = useState<string>(VALID_CATEGORIES[0]?.key ?? "search");
+  const { t } = useI18n();
 
   const items = useMemo(() => QUICK_LINKS[activeCat] ?? [], [activeCat]);
+
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) < 50) return; // 最小滑动距离
+    const currentIdx = VALID_CATEGORIES.findIndex((c) => c.key === activeCat);
+    if (diff > 0 && currentIdx < VALID_CATEGORIES.length - 1) {
+      setActiveCat(VALID_CATEGORIES[currentIdx + 1].key);
+    } else if (diff < 0 && currentIdx > 0) {
+      setActiveCat(VALID_CATEGORIES[currentIdx - 1].key);
+    }
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
 
   return (
     <div className="w-full max-w-[1440px]">
@@ -61,14 +87,14 @@ export default function BottomNavBar() {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Icons.LayoutGrid size={16} className="text-brand-primary" />
-            <span className="text-sm font-semibold text-ink">快速导航</span>
+            <span className="text-sm font-semibold text-ink">{t.quickNav}</span>
             <span className="rounded-full bg-brand-gradient/20 px-2 py-0.5 text-[10px] text-brand-primary">
-              {items.length} 个
+              {items.length} {t.quickNavCount}
             </span>
           </div>
           <div className="flex items-center gap-1 text-[11px] text-ink-subtle">
             <Icons.MousePointer size={12} />
-            <span>横向拖动可查看更多</span>
+            <span>{t.quickNavTip} · {t.swipeTip}</span>
             <Icons.Move size={12} />
           </div>
         </div>
@@ -110,6 +136,9 @@ export default function BottomNavBar() {
         {/* 站点快捷条：可横向拖动滚动 */}
         <div
           className="flex gap-3 overflow-x-auto pb-2 scroll-smooth"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{
             scrollbarWidth: "thin",
             scrollbarColor: "rgba(148, 163, 184, 0.5) transparent",

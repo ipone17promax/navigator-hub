@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import * as Icons from "lucide-react";
 import type { SiteItem } from "@/shared/types";
 import type { LucideIcon } from "lucide-react";
+import { useUserStore } from "@/stores/useUserStore";
 
 const icon = (name: string): LucideIcon =>
   (Icons as unknown as Record<string, LucideIcon>)[name] ?? Icons.Globe;
@@ -107,6 +108,9 @@ export default function SiteCard({ site, index }: Props) {
   const navigate = useNavigate();
   const delay = `${260 + index * 35}ms`;
 
+  const { favorites, toggleFavorite, recordVisit } = useUserStore();
+  const isFav = favorites.includes(site.id);
+
   const isInternal = useMemo(
     () => site.url.startsWith("/") && !/^https?:\/\//i.test(site.url),
     [site.url],
@@ -153,6 +157,7 @@ export default function SiteCard({ site, index }: Props) {
   const showImage = !isInternal && !!imageSrc;
 
   const openExternal = () => {
+    recordVisit(site.id);
     window.open(site.url, "_blank", "noopener,noreferrer");
   };
 
@@ -278,6 +283,40 @@ export default function SiteCard({ site, index }: Props) {
           />
         )}
       </div>
+
+      {/* 收藏按钮（用 span 避免在外链 <button> 内套 button，触发 DOM 嵌套警告）*/}
+      <span
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFavorite(site.id);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFavorite(site.id);
+          }
+        }}
+        className="absolute right-2 top-2 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-bg-base/60 backdrop-blur-sm transition-all hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+        title={isFav ? "取消收藏" : "收藏"}
+        aria-label={isFav ? "取消收藏" : "收藏"}
+      >
+        {isFav ? (
+          <Icons.Star
+            size={15}
+            className="fill-amber-400 text-amber-400"
+            style={{ filter: "drop-shadow(0 0 4px rgba(251,191,36,0.5))" }}
+          />
+        ) : (
+          <Icons.Star
+            size={15}
+            className="text-ink-subtle opacity-0 transition-opacity duration-200 group-hover:opacity-60 hover:!opacity-100"
+          />
+        )}
+      </span>
     </>
   );
 
@@ -290,6 +329,7 @@ export default function SiteCard({ site, index }: Props) {
             !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey && e.button === 0;
           if (isPlain) {
             e.preventDefault();
+            recordVisit(site.id);
             void navigate(site.url);
           }
         }}

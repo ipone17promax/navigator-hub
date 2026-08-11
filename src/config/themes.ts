@@ -35,6 +35,7 @@ export const LS_KEYS = {
   engine: "navhub:engine",
   lastCategory: "navhub:lastCategory",
   elderlyMode: "navhub:elderlyMode",
+  locale: "navhub:locale",
   // 内部日志系统
   logs: "navhub:logs",
 } as const;

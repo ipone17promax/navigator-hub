@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { SiteCategory, ThemeKey } from "@/shared/types";
+import type { Locale } from "@/i18n/translations";
 import { LS_KEYS, THEMES } from "@/config/themes";
 import { SEARCH_ENGINES } from "@/config/sites";
 import { logger } from "@/lib/logger";
@@ -47,6 +48,10 @@ interface AppState {
   // 关爱老人模式（全局放大字体）
   elderlyMode: boolean;
   toggleElderlyMode: () => void;
+
+  // 多语言
+  locale: Locale;
+  setLocale: (l: Locale) => void;
 }
 
 export const useAppStore = create<AppState>((set) => {
@@ -55,6 +60,7 @@ export const useAppStore = create<AppState>((set) => {
   const savedEngine = safeGet<string>(LS_KEYS.engine, SEARCH_ENGINES[0].id);
   const savedCategory = safeGet<SiteCategory>(LS_KEYS.lastCategory, "all");
   const savedElderly = safeGet<boolean>(LS_KEYS.elderlyMode, false);
+  const savedLocale = safeGet<Locale>(LS_KEYS.locale, "zh");
 
   // 首次注入主题到 HTML
   const t = THEMES[savedTheme] ? savedTheme : "cyber";
@@ -103,6 +109,12 @@ export const useAppStore = create<AppState>((set) => {
         document.documentElement.style.fontSize = next ? "20px" : "16px";
       }
       logger.info("AppStore", "切换老人模式", { enabled: next });
+    },
+
+    locale: savedLocale,
+    setLocale: (l: Locale) => {
+      set({ locale: l });
+      safeSet(LS_KEYS.locale, l);
     },
   };
 });

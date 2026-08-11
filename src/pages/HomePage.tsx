@@ -17,6 +17,10 @@ import BottomNavBar from "@/components/BottomNavBar";
 import FontSizeToggle from "@/components/FontSizeToggle";
 import InternalDebugPanel from "@/components/InternalDebugPanel";
 import LoginCard from "@/components/LoginCard";
+import BackgroundSwitcher from "@/components/BackgroundSwitcher";
+import StatsPanel from "@/components/StatsPanel";
+import { useI18n } from "@/i18n";
+import { useAppStore } from "@/stores/useAppStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 /**
@@ -36,6 +40,9 @@ export default function HomePage() {
   const status = useAuthStore((s) => s.status);
   const isSuperAdmin = useAuthStore((s) => s.isSuperAdmin);
   const [loginOpen, setLoginOpen] = useState(false);
+  const { t } = useI18n();
+  const locale = useAppStore((s) => s.locale);
+  const setLocale = useAppStore((s) => s.setLocale);
 
   // 身份未定时：渲染最小化加载屏，不渲染任何业务内容
   if (status === "loading") {
@@ -54,6 +61,23 @@ export default function HomePage() {
             <QuickDate />
             <FontSizeToggle />
             <ThemeSwitcher />
+            <BackgroundSwitcher />
+            {/* 语言切换 */}
+            <div className="flex items-center gap-1 rounded-lg border border-stroke bg-bg-elevate/60 px-1 py-1.5">
+              {(["zh", "en"] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLocale(l)}
+                  className={`rounded px-2 py-0.5 text-[11px] font-medium transition-all ${
+                    locale === l
+                      ? "bg-brand-gradient text-white"
+                      : "text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {l === "zh" ? "中" : "EN"}
+                </button>
+              ))}
+            </div>
             {isAdmin ? (
               isSuperAdmin ? <SuperAdminBadge /> : <AdminBadge />
             ) : (
@@ -96,6 +120,11 @@ export default function HomePage() {
           </div>
         )}
 
+        {/* ===== 访问统计面板 ===== */}
+        <div className="mt-2 w-full max-w-[1440px]">
+          <StatsPanel />
+        </div>
+
         {/* ===== 底部快速导航栏：可横向拖动 ===== */}
         <div className="mt-4 w-full max-w-[1440px]">
           <BottomNavBar />
@@ -117,12 +146,13 @@ export default function HomePage() {
 // 加载屏：身份未定时展示
 // ============================================================
 function LoadingScreen() {
+  const { t } = useI18n();
   return (
     <div className="cyber-bg flex min-h-screen items-center justify-center">
       <div className="text-center animate-fade-in-up">
         <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-cyan-400/30 border-t-cyan-400" />
-        <p className="mt-4 text-sm text-ink-muted">正在连接安全通道…</p>
-        <p className="mt-1 text-[11px] text-ink-subtle">NavigatorHub · 安全通道</p>
+        <p className="mt-4 text-sm text-ink-muted">{t.loading}</p>
+        <p className="mt-1 text-[11px] text-ink-subtle">{t.loadingChannel}</p>
       </div>
     </div>
   );
@@ -132,13 +162,14 @@ function LoadingScreen() {
 // 管理员徽章：admin 状态下显示
 // ============================================================
 function AdminBadge() {
+  const { t } = useI18n();
   return (
     <div
       className="flex items-center gap-1.5 rounded-lg border border-brand-primary/40 bg-brand-primary/10 px-2.5 py-1.5 text-xs text-brand-primary"
-      title="已通过管理员访问码验证"
+      title={t.admin}
     >
       <Icons.ShieldCheck size={14} />
-      <span className="font-semibold">管理员</span>
+      <span className="font-semibold">{t.admin}</span>
     </div>
   );
 }
@@ -147,13 +178,14 @@ function AdminBadge() {
 // 特级管理员徽章：password-01 专属
 // ============================================================
 function SuperAdminBadge() {
+  const { t } = useI18n();
   return (
     <div
       className="flex items-center gap-1.5 rounded-lg border border-amber-400/50 bg-amber-400/10 px-2.5 py-1.5 text-xs text-amber-400"
-      title="特级管理员 · 创作者"
+      title={t.superAdmin}
     >
       <Icons.Crown size={14} />
-      <span className="font-semibold">特级管理员</span>
+      <span className="font-semibold">{t.superAdmin}</span>
     </div>
   );
 }
@@ -162,19 +194,21 @@ function SuperAdminBadge() {
 // 管理员入口按钮：guest 状态下显示，点击弹出 LoginCard
 // ============================================================
 function AdminEntryButton({ onClick }: { onClick: () => void }) {
+  const { t } = useI18n();
   return (
     <button
       onClick={onClick}
-      title="管理员访问入口"
+      title={t.admin}
       className="flex items-center gap-1.5 rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-xs text-ink-muted transition-all hover:border-stroke-hover hover:text-ink"
     >
       <Icons.Lock size={14} />
-      <span>管理员</span>
+      <span>{t.admin}</span>
     </button>
   );
 }
 
 function BrandLogo() {
+  const { t } = useI18n();
   return (
     <div className="flex shrink-0 items-center gap-2 animate-fade-in-up">
       <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-brand-gradient shadow-glow">
@@ -187,20 +221,20 @@ function BrandLogo() {
         <div className="font-display text-[15px] font-bold tracking-wide text-ink sm:text-base">
           Navigator<span className="text-brand-gradient">Hub</span>
         </div>
-        <div className="text-[11px] text-ink-muted">星际导航中心 · v2.0</div>
+        <div className="text-[11px] text-ink-muted">{t.brandVersion}</div>
       </div>
     </div>
   );
 }
 
 function QuickDate() {
+  const { t } = useI18n();
   const now = new Date();
-  const dateStr = `${now.getMonth() + 1}月${now.getDate()}日`;
-  const weekDays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+  const dateStr = `${now.getMonth() + 1}${t.monthUnit}${now.getDate()}${t.dayUnit}`;
   return (
     <div className="hidden text-right sm:block">
       <div className="text-sm font-medium text-ink">{dateStr}</div>
-      <div className="text-[11px] text-ink-subtle">{weekDays[now.getDay()]}</div>
+      <div className="text-[11px] text-ink-subtle">{t.weekDays[now.getDay()]}</div>
     </div>
   );
 }
