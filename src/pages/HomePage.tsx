@@ -43,6 +43,13 @@ export default function HomePage() {
       const tag = (e.target as HTMLElement)?.tagName;
       const typing = tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable;
 
+      // Cmd+K / Ctrl+K：打开命令面板
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        useAppStore.getState().toggleCommandPalette();
+        return;
+      }
+
       // 数字键 1-9：打开当前分类或收藏中的站点
       if (!typing && /^[1-9]$/.test(e.key)) {
         const n = parseInt(e.key, 10);
