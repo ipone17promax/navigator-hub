@@ -49,7 +49,7 @@ export default function StockWidget() {
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2 overflow-hidden">
         {stocks.map((s, i) => {
           const td = trend(s.changePct);
           const d = sparklinePath(s.kline.map((k) => k.close));
@@ -59,7 +59,7 @@ export default function StockWidget() {
               href={s.meta.exUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex cursor-pointer flex-col gap-1 rounded-xl border border-stroke bg-bg-elevate/30 p-2.5 transition-all hover:border-stroke-hover hover:bg-white/5"
+              className="group flex min-w-0 cursor-pointer flex-col gap-1 overflow-hidden rounded-xl border border-stroke bg-bg-elevate/30 p-2 transition-all hover:border-stroke-hover hover:bg-white/5"
             >
               <div className="flex items-center justify-between">
                 <span className="text-[12px] font-semibold text-ink/80 truncate">{s.meta.name}</span>
@@ -67,17 +67,17 @@ export default function StockWidget() {
               </div>
               <div className="flex items-end justify-between gap-2">
                 <div>
-                  <p className={`text-base font-bold leading-tight ${td.cls}`}>{s.price.toFixed(2)}</p>
+                  <p className={`text-sm font-bold leading-tight ${td.cls}`}>{s.price.toFixed(2)}</p>
                   <p className="text-[10px] text-ink-muted">昨收 {s.prevClose.toFixed(2)}</p>
                 </div>
-                <svg viewBox="0 0 80 24" preserveAspectRatio="none" className="h-6 w-[80px] shrink-0 overflow-visible">
+                <svg viewBox="0 0 80 24" preserveAspectRatio="none" className="h-5 w-[60px] shrink-0">
                   <path d={d} stroke={td.stroke} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-ink-muted">
-                <span>开 {s.open.toFixed(2)}</span>
-                <span>高 {s.high.toFixed(2)}</span>
-                <span>低 {s.low.toFixed(2)}</span>
+              <div className="flex items-center justify-between gap-1 text-[10px] text-ink-muted">
+                <span className="truncate">开{s.open.toFixed(2)}</span>
+                <span className="truncate">高{s.high.toFixed(2)}</span>
+                <span className="truncate">低{s.low.toFixed(2)}</span>
               </div>
               <span className="mt-0.5 text-right text-[10px] text-ink-muted">{s.lastUpdate}</span>
             </a>

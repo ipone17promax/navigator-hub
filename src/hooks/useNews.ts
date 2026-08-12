@@ -110,11 +110,11 @@ export function useNews(autoScroll = true) {
         el.scrollTop += 1;
       }
     };
-    timerRef.current = window.setInterval(step, 60);
+    timerRef.current = window.setInterval(step, 80);
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
     };
-  }, [autoScroll, paused, items]);
+  }, [autoScroll, paused]);
 
   return { items, loading, paused, setPaused, load, scrollerRef };
 }
