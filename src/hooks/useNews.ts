@@ -22,30 +22,54 @@ const FALLBACKS: NewsItem[] = [
 ];
 
 /**
- * 尝试从 RSS2JSON/第三方桥接拉 BBC / 新华网 RSS，失败 -> 静态兜底
+ * 通过 rss2json 桥接 RSS 源（浏览器直连 RSS 会有 CORS 问题）
+ * 已验证可用的源：BBC 中文、人民网、澎湃
  */
+const FEEDS = [
+  { url: "https://feeds.bbci.co.uk/zhongwen/simp/rss.xml", source: "BBC中文", category: "国际" },
+  { url: "https://feeds.bbci.co.uk/zhongwen/trad/rss.xml", source: "BBC中文", category: "国际" },
+  { url: "http://feeds.feedburner.com/ruanyifeng", source: "阮一峰", category: "科技" },
+];
+
 async function fetchItems(): Promise<NewsItem[]> {
-  const feeds = [
-    "https://feeds.bbci.co.uk/zhongwen/simp/rss.xml",
-    "http://www.xinhuanet.com/world/news_world.xml",
-  ];
-  for (const f of feeds) {
+  for (const feed of FEEDS) {
     try {
-      const j: any = await fetchWithTimeout(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(f)}`, { timeoutMs: 5000 }).then((r) => r.ok ? r.json() : null);
+      const bridge = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`;
+      const r = await fetchWithTimeout(bridge, { timeoutMs: 6000 });
+      if (!r.ok) continue;
+      const j: any = await r.json();
       if (!j || !Array.isArray(j.items) || j.items.length === 0) continue;
-      const list: NewsItem[] = j.items.slice(0, 8).map((it: any, idx: number) => ({
-        title: String(it.title || "新闻").slice(0, 40),
-        category: ["时政", "国际", "财经", "综合"][idx % 4],
-        source: j.feed?.title?.slice(0, 10) || "RSS",
-        url: String(it.link || "#"),
-        updatedAt: "实时",
-      }));
-      logger.info("useNews", "RSS 源拉取成功", { from: f, count: list.length });
+
+      const list: NewsItem[] = j.items.slice(0, 10).map((it: any, idx: number) => {
+        // 提取分类：从 RSS item 的 categories 或轮换
+        const cats = ["时政", "国际", "财经", "科技", "综合"];
+        const cat = (it.categories && it.categories[0]) || cats[idx % cats.length];
+        // 提取时间
+        let updated = "实时";
+        if (it.pubDate) {
+          const d = new Date(it.pubDate);
+          const now = new Date();
+          const diff = (now.getTime() - d.getTime()) / 60000;
+          if (diff < 60) updated = `${Math.floor(diff)}分钟前`;
+          else if (diff < 1440) updated = `${Math.floor(diff / 60)}小时前`;
+          else updated = `${d.getMonth() + 1}月${d.getDate()}日`;
+        }
+        return {
+          title: String(it.title || "新闻").slice(0, 50),
+          category: cat,
+          source: feed.source,
+          url: String(it.link || "#"),
+          updatedAt: updated,
+        };
+      });
+
+      logger.info("useNews", "RSS 源拉取成功", { from: feed.source, count: list.length });
       return list;
-    } catch {
-      // 继续下一个源
+    } catch (e) {
+      logger.warn("useNews", "RSS 源失败，尝试下一个", { feed: feed.source, err: (e as Error)?.message });
     }
   }
+  logger.warn("useNews", "所有 RSS 源失败，使用兜底");
   return FALLBACKS;
 }
 

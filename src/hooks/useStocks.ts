@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
-import { fetchWithTimeout, safeJson } from "@/lib/api";
+import { fetchWithTimeout } from "@/lib/api";
 
 export interface StockMeta {
   name: string;
@@ -24,13 +24,20 @@ export interface StockData {
 }
 
 const META: StockMeta[] = [
-  { name: "上证指数",   code: "000001", market: "SH", exUrl: "https://quote.eastmoney.com/sh000001.html" },
-  { name: "深证成指",   code: "399001", market: "SZ", exUrl: "https://quote.eastmoney.com/sz399001.html" },
-  { name: "创业板指",   code: "399006", market: "SZ", exUrl: "https://quote.eastmoney.com/sz399006.html" },
-  { name: "科创50",    code: "000688", market: "SH", exUrl: "https://quote.eastmoney.com/sh000688.html" },
-  { name: "沪深300",   code: "000300", market: "SH", exUrl: "https://quote.eastmoney.com/sh000300.html" },
-  { name: "恒生指数",   code: "HSI",    market: "HK", exUrl: "https://quote.eastmoney.com/hk/hsi.html" },
+  { name: "上证指数",  code: "000001", market: "SH", exUrl: "https://quote.eastmoney.com/sh000001.html" },
+  { name: "深证成指",  code: "399001", market: "SZ", exUrl: "https://quote.eastmoney.com/sz399001.html" },
+  { name: "创业板指",  code: "399006", market: "SZ", exUrl: "https://quote.eastmoney.com/sz399006.html" },
+  { name: "科创50",   code: "000688", market: "SH", exUrl: "https://quote.eastmoney.com/sh000688.html" },
+  { name: "沪深300",  code: "000300", market: "SH", exUrl: "https://quote.eastmoney.com/sh000300.html" },
+  { name: "恒生指数",  code: "HSI",    market: "HK", exUrl: "https://quote.eastmoney.com/hk/hsi.html" },
 ];
+
+/** secid 映射：东方财富的 secid 格式为 market.code */
+function secid(meta: StockMeta): string {
+  if (meta.market === "HK") return "100." + meta.code;
+  if (meta.market === "SH") return "1." + meta.code;
+  return "0." + meta.code;
+}
 
 function nowStr(): string {
   const d = new Date();
@@ -64,84 +71,64 @@ const MOCK_BASE: Record<string, number> = {
   "000688": 1700, "000300": 4650, HSI: 25500,
 };
 
-function parseEastMoney(text: string): number[] | null {
-  // hq_str_sh000001="...","data"; 取引号中的 CSV
-  const m = /"([^"]+)"/.exec(text);
-  if (!m) return null;
-  const parts = m[1].split(",");
-  if (parts.length < 5) return null;
-  // fields: 0=name, 1=open, 2=prevClose, 3=price, 4=high, 5=low
-  const price = parseFloat(parts[3]);
-  const open = parseFloat(parts[1]);
-  const prevClose = parseFloat(parts[2]);
-  const high = parseFloat(parts[4]);
-  const low = parseFloat(parts[5]);
-  if ([price, open, prevClose, high, low].some(Number.isNaN)) return null;
-  return [price, open, prevClose, high, low];
-}
-
+/**
+ * 用 push2his.eastmoney.com 的 kline 接口拿真实行情
+ * 该接口支持 CORS（push2his 域名比 push2 域名宽松）
+ * K 线格式：日期,开盘,收盘,最高,最低,成交量
+ */
 async function loadOne(meta: StockMeta): Promise<StockData> {
-  const mk = meta.market.toLowerCase();
-  const secid = mk === "hk" ? `100.${meta.code}` : (mk === "sh" ? `1.${meta.code}` : `0.${meta.code}`);
-  // 走公开推送接口，实时数据
-  const urls = [
-    `https://push2.eastmoney.com/api/qt/stock/get?secid=${secid}&fields=f43,f44,f45,f46,f47,f60,f57,f58`,
-    `https://hq.sinajs.cn/list=${mk}${meta.code}`,
-  ];
-  for (const u of urls) {
-    try {
-      const r = await fetchWithTimeout(u, { timeoutMs: 4000 });
-      if (!r.ok) continue;
-      const txt = await r.text();
-      // 东方财富 JSON 格式
-      if (u.includes("push2")) {
-        try {
-          const j: any = JSON.parse(txt);
-          const d = j.data;
-          if (!d) continue;
-          const price = d.f43 / 100;
-          const open = d.f46 / 100;
-          const prevClose = d.f60 / 100;
-          const high = d.f44 / 100;
-          const low = d.f45 / 100;
-          if ([price, open, prevClose, high, low].some(Number.isNaN)) continue;
-          const change = price - prevClose;
-          const changePct = prevClose ? ((change / prevClose) * 100) : 0;
-          const kline: { label: string; close: number }[] = [];
-          for (let i = 9; i >= 0; i--) {
-            kline.push({ label: `${10 - i}日`, close: prevClose * (1 + (Math.random() - 0.5) * 0.04) });
-          }
-          return {
-            meta, price: +price.toFixed(2), prevClose: +prevClose.toFixed(2),
-            open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2),
-            change: +change.toFixed(2), changePct: +changePct.toFixed(2),
-            kline, online: true, lastUpdate: nowStr(),
-          };
-        } catch { /* 继续尝试 sina */ }
-      }
-      // sina
-      const parsed = parseEastMoney(txt);
-      if (parsed) {
-        const [price, open, prevClose, high, low] = parsed;
-        const change = price - prevClose;
-        const changePct = prevClose ? ((change / prevClose) * 100) : 0;
-        const kline: { label: string; close: number }[] = [];
-        for (let i = 9; i >= 0; i--) {
-          kline.push({ label: `${10 - i}日`, close: prevClose * (1 + (Math.random() - 0.5) * 0.04) });
-        }
-        return {
-          meta, price: +price.toFixed(2), prevClose: +prevClose.toFixed(2),
-          open: +open.toFixed(2), high: +high.toFixed(2), low: +low.toFixed(2),
-          change: +change.toFixed(2), changePct: +changePct.toFixed(2),
-          kline, online: true, lastUpdate: nowStr(),
-        };
-      }
-    } catch {
-      // 下一个源
-    }
+  const sid = secid(meta);
+  const end = new Date();
+  const beg = new Date(end.getTime() - 30 * 24 * 3600 * 1000);
+  const fmt = (d: Date) => `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  const url =
+    `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${sid}` +
+    `&fields1=f1,f2,f3&fields2=f51,f52,f53,f54,f55,f56` +
+    `&klt=101&fqt=0&beg=${fmt(beg)}&end=${fmt(end)}`;
+
+  try {
+    const r = await fetchWithTimeout(url, { timeoutMs: 6000 });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const j: any = await r.json();
+    const klines: string[] = j?.data?.klines;
+    if (!klines || klines.length < 2) throw new Error("no kline data");
+
+    // 解析最近 10 条 K 线
+    const recent = klines.slice(-10);
+    const kline: { label: string; close: number }[] = recent.map((k, i) => {
+      const parts = k.split(",");
+      return { label: `${i + 1}`, close: parseFloat(parts[2]) };
+    });
+
+    // 最新一条 = 今天
+    const latest = klines[klines.length - 1].split(",");
+    const prev = klines[klines.length - 2].split(",");
+    const price = parseFloat(latest[2]);   // 收盘
+    const open = parseFloat(latest[1]);     // 开盘
+    const high = parseFloat(latest[3]);     // 最高
+    const low = parseFloat(latest[4]);      // 最低
+    const prevClose = parseFloat(prev[2]);  // 昨日收盘
+    const change = price - prevClose;
+    const changePct = prevClose ? ((change / prevClose) * 100) : 0;
+
+    logger.info("useStocks", "真实行情获取成功", { name: meta.name, price, prevClose });
+    return {
+      meta,
+      price: +price.toFixed(2),
+      prevClose: +prevClose.toFixed(2),
+      open: +open.toFixed(2),
+      high: +high.toFixed(2),
+      low: +low.toFixed(2),
+      change: +change.toFixed(2),
+      changePct: +changePct.toFixed(2),
+      kline,
+      online: true,
+      lastUpdate: nowStr(),
+    };
+  } catch (e) {
+    logger.warn("useStocks", "行情获取失败，回退模拟", { name: meta.name, err: (e as Error)?.message });
+    return mockStock(meta, MOCK_BASE[meta.code] ?? 100);
   }
-  // 全部失败 -> 模拟数据
-  return mockStock(meta, MOCK_BASE[meta.code] ?? 100);
 }
 
 export function useStocks() {
