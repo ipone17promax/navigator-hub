@@ -66,20 +66,22 @@ async function locate(): Promise<{ lat: number; lon: number }> {
     return await getPos();
   } catch { /* 用户拒绝或不支持，继续 IP 定位 */ }
 
-  // 2. ip-api.com（对中国 IP 更准确，支持 CORS）
+  // 2. ipwho.is（HTTPS + CORS，线上环境可用）
   try {
-    const j = await safeJson<{ lat: number; lon: number; status?: string }>(
-      "http://ip-api.com/json/?fields=status,lat,lon"
+    const j = await safeJson<{ success: boolean; latitude?: number; longitude?: number }>(
+      "https://ipwho.is/?lang=zh"
     );
-    if (j && j.lat && j.lon) {
-      return { lat: j.lat, lon: j.lon };
+    if (j && j.success && typeof j.latitude === "number" && typeof j.longitude === "number") {
+      return { lat: j.latitude, lon: j.longitude };
     }
   } catch { /* 继续兜底 */ }
 
-  // 3. ipwho.is 备用
+  // 3. ip-api.com 备用（仅本地 dev 可用，HTTPS 页面会被混合内容拦截）
   try {
-    const j = await safeJson<{ success: boolean; latitude?: number; longitude?: number }>("https://ipwho.is/");
-    if (j && j.success && typeof j.latitude === "number" && typeof j.longitude === "number") {
+    const j = await safeJson<{ latitude: number; longitude: number }>(
+      "https://ipapi.co/json/"
+    );
+    if (j && j.latitude && j.longitude) {
       return { lat: j.latitude, lon: j.longitude };
     }
   } catch { /* 继续兜底 */ }
@@ -89,7 +91,16 @@ async function locate(): Promise<{ lat: number; lon: number }> {
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
-  // 1. bigdatacloud（支持 CORS，中文地名）
+  // 1. ipwho.is 直接拿城市名（如果坐标来自 IP 定位，这里最准）
+  try {
+    const j = await safeJson<{ city?: string; region?: string; success?: boolean }>(
+      "https://ipwho.is/?lang=zh"
+    );
+    if (j && j.city) return j.city;
+    if (j && j.region) return j.region;
+  } catch { /* ignore */ }
+
+  // 2. bigdatacloud 反查（支持 CORS，中文地名）
   try {
     const r = await fetchWithTimeout(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`,
@@ -100,15 +111,6 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
       const name = j.city || j.locality || j.principalSubdivision;
       if (name) return name;
     }
-  } catch { /* ignore */ }
-
-  // 2. ip-api.com 的 city 字段（如果坐标来自 IP 定位，这里更准）
-  try {
-    const j = await safeJson<{ city?: string; regionName?: string }>(
-      "http://ip-api.com/json/?fields=city,regionName,lat,lon"
-    );
-    if (j && j.city) return j.city;
-    if (j && j.regionName) return j.regionName;
   } catch { /* ignore */ }
 
   return "本地";
