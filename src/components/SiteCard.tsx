@@ -31,12 +31,42 @@ export default function SiteCard({ id, name, url, desc, iconName = "Globe", cate
   const isFav = favorites.includes(id);
   const I = icon(iconName);
 
-  // 图标多级回退：本地public → DuckDuckGo → Google S2 → Cravatar
+  // 图标多级回退：本地public → 国内源优先（iowen/cccyun/vvhan/infinity）→ 直接favicon.ico → 国外源兜底
   useEffect(() => {
     let cancelled = false;
     const candidates: (() => string | null)[] = [
       () => `/icons/${id}.svg`,
       () => `/icons/${id}.png`,
+      () => {
+        try {
+          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
+          return `https://api.iowen.cn/favicon/${host}.png`;
+        } catch { return null; }
+      },
+      () => {
+        try {
+          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
+          return `https://favicon.cccyun.cc/${host}`;
+        } catch { return null; }
+      },
+      () => {
+        try {
+          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
+          return `https://api.vvhan.com/api/favicon?url=${host}`;
+        } catch { return null; }
+      },
+      () => {
+        try {
+          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
+          return `https://www.infinitynewtab.com/statics/favicon/get.php?url=${host}`;
+        } catch { return null; }
+      },
+      () => {
+        try {
+          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
+          return `https://${host}/favicon.ico`;
+        } catch { return null; }
+      },
       () => {
         try {
           const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
