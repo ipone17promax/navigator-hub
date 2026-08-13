@@ -34,7 +34,20 @@ export default function NewsStream() {
         onMouseLeave={() => setPaused(false)}
         className="mt-3 flex max-h-56 min-h-[12rem] flex-col gap-2 overflow-hidden pr-1 scroll-smooth"
       >
-        {items.map((n, i) => (
+        {loading ? (
+          <div className="flex flex-col gap-3 py-1">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-start gap-2 rounded-xl p-2">
+                <div className="h-4 w-8 rounded-lg bg-white/5 animate-pulse" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="w-full h-2.5 rounded-md bg-white/5 animate-pulse" />
+                  <div className="w-2/3 h-2 rounded-md bg-white/5 animate-pulse" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {!loading && items.map((n, i) => (
           <a
             key={i}
             href={n.url}
@@ -56,6 +69,11 @@ export default function NewsStream() {
             <Icons.ExternalLink size={11} className="mt-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 text-ink-muted" />
           </a>
         ))}
+        {!loading && items.length === 0 ? (
+          <div className="flex h-32 items-center justify-center text-[11px] text-ink-muted">
+            暂无新闻
+          </div>
+        ) : null}
       </div>
     </div>
   );

@@ -40,6 +40,18 @@ export default function SiteCard({ id, name, url, desc, iconName = "Globe", cate
       () => {
         try {
           const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
+          return `https://api.favicon.im/${host}`;
+        } catch { return null; }
+      },
+      () => {
+        try {
+          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
+          return `https://api.faviconkit.com/${host}/64`;
+        } catch { return null; }
+      },
+      () => {
+        try {
+          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
           return `https://icons.duckduckgo.com/ip3/${host}.ico`;
         } catch { return null; }
       },

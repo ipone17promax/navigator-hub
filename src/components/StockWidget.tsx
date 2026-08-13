@@ -50,7 +50,29 @@ export default function StockWidget() {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2 overflow-hidden">
-        {stocks.map((s, i) => {
+        {loading ? (
+          <>{[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex min-w-0 flex-col gap-2 overflow-hidden rounded-xl border border-stroke bg-bg-elevate/30 p-2">
+              <div className="flex items-center justify-between">
+                <div className="h-3 w-16 rounded-lg bg-white/5 animate-pulse" />
+                <div className="h-3 w-10 rounded-lg bg-white/5 animate-pulse" />
+              </div>
+              <div className="flex items-end justify-between gap-2">
+                <div className="space-y-1">
+                  <div className="h-4 w-14 rounded-lg bg-white/5 animate-pulse" />
+                  <div className="h-2 w-16 rounded-lg bg-white/5 animate-pulse" />
+                </div>
+                <div className="h-5 w-[60px] rounded-lg bg-white/5 animate-pulse" />
+              </div>
+              <div className="flex items-center justify-between gap-1">
+                <div className="h-2 w-8 rounded-lg bg-white/5 animate-pulse" />
+                <div className="h-2 w-8 rounded-lg bg-white/5 animate-pulse" />
+                <div className="h-2 w-8 rounded-lg bg-white/5 animate-pulse" />
+              </div>
+              <div className="ml-auto h-2 w-10 rounded-lg bg-white/5 animate-pulse" />
+            </div>
+          ))}</>
+        ) : stocks.map((s, i) => {
           const td = trend(s.changePct);
           const d = sparklinePath(s.kline.map((k) => k.close));
           return (

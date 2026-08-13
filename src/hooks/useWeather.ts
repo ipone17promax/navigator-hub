@@ -31,19 +31,19 @@ function wmoToText(code: number, isDay: boolean): { c: string; icon: string } {
     1: { c: "晴间多云", icon: cloudSun }, 2: { c: "多云", icon: cloudSun },
     3: { c: "阴", icon: "Cloud" },
     45: { c: "雾", icon: "CloudFog" }, 48: { c: "雾凇", icon: "CloudFog" },
-    51: { c: "毛毛雨", icon: "CloudDrizzle" }, 53: { c: "毛毛雨", icon: "CloudDrizzle" },
-    55: { c: "毛毛雨", icon: "CloudDrizzle" }, 56: { c: "冻毛毛雨", icon: "CloudHail" },
+    51: { c: "小毛毛雨", icon: "CloudDrizzle" }, 53: { c: "毛毛雨", icon: "CloudDrizzle" },
+    55: { c: "大毛毛雨", icon: "CloudDrizzle" }, 56: { c: "冻毛毛雨", icon: "CloudHail" },
     57: { c: "冻毛毛雨", icon: "CloudHail" },
     61: { c: "小雨", icon: "CloudRain" }, 63: { c: "中雨", icon: "CloudRain" },
     65: { c: "大雨", icon: "CloudRain" }, 66: { c: "冻雨", icon: "CloudHail" },
     67: { c: "冻雨", icon: "CloudHail" },
     71: { c: "小雪", icon: "CloudSnow" }, 73: { c: "中雪", icon: "CloudSnow" },
     75: { c: "大雪", icon: "CloudSnow" }, 77: { c: "米雪", icon: "CloudSnow" },
-    80: { c: "阵雨", icon: "CloudRain" }, 81: { c: "阵雨", icon: "CloudRain" },
-    82: { c: "暴雨", icon: "CloudRain" }, 85: { c: "阵雪", icon: "CloudSnow" },
-    86: { c: "阵雪", icon: "CloudSnow" },
-    95: { c: "雷暴", icon: "CloudLightning" }, 96: { c: "雷暴伴冰雹", icon: "CloudLightning" },
-    99: { c: "雷暴伴冰雹", icon: "CloudLightning" },
+    80: { c: "小阵雨", icon: "CloudRain" }, 81: { c: "阵雨", icon: "CloudRain" },
+    82: { c: "强阵雨", icon: "CloudRain" }, 85: { c: "小阵雪", icon: "CloudSnow" },
+    86: { c: "大阵雪", icon: "CloudSnow" },
+    95: { c: "雷暴", icon: "CloudLightning" }, 96: { c: "雷暴伴小冰雹", icon: "CloudLightning" },
+    99: { c: "雷暴伴大冰雹", icon: "CloudLightning" },
   };
   const hit = map[code];
   return hit ? hit : { c: "未知", icon: "Cloud" };
@@ -60,29 +60,36 @@ function getPos(): Promise<{ lat: number; lon: number }> {
   });
 }
 
+function inChina(lat: number, lon: number): boolean {
+  return lat >= 18 && lat <= 54 && lon >= 73 && lon <= 135;
+}
+
 async function locate(): Promise<{ lat: number; lon: number }> {
   // 1. 优先浏览器定位（最准）
   try {
-    return await getPos();
+    const p = await getPos();
+    if (inChina(p.lat, p.lon)) return p;
   } catch { /* 用户拒绝或不支持，继续 IP 定位 */ }
 
-  // 2. ipwho.is（HTTPS + CORS，线上环境可用）
+  // 2. ipwho.is（HTTPS + CORS）
   try {
     const j = await safeJson<{ success: boolean; latitude?: number; longitude?: number }>(
       "https://ipwho.is/?lang=zh"
     );
     if (j && j.success && typeof j.latitude === "number" && typeof j.longitude === "number") {
-      return { lat: j.latitude, lon: j.longitude };
+      const pos = { lat: j.latitude, lon: j.longitude };
+      if (inChina(pos.lat, pos.lon)) return pos;
     }
   } catch { /* 继续兜底 */ }
 
-  // 3. ip-api.com 备用（仅本地 dev 可用，HTTPS 页面会被混合内容拦截）
+  // 3. ipapi.co 备用
   try {
     const j = await safeJson<{ latitude: number; longitude: number }>(
       "https://ipapi.co/json/"
     );
     if (j && j.latitude && j.longitude) {
-      return { lat: j.latitude, lon: j.longitude };
+      const pos = { lat: j.latitude, lon: j.longitude };
+      if (inChina(pos.lat, pos.lon)) return pos;
     }
   } catch { /* 继续兜底 */ }
 
@@ -91,16 +98,7 @@ async function locate(): Promise<{ lat: number; lon: number }> {
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
-  // 1. ipwho.is 直接拿城市名（如果坐标来自 IP 定位，这里最准）
-  try {
-    const j = await safeJson<{ city?: string; region?: string; success?: boolean }>(
-      "https://ipwho.is/?lang=zh"
-    );
-    if (j && j.city) return j.city;
-    if (j && j.region) return j.region;
-  } catch { /* ignore */ }
-
-  // 2. bigdatacloud 反查（支持 CORS，中文地名）
+  // bigdatacloud 基于坐标反查（支持 CORS，中文地名）
   try {
     const r = await fetchWithTimeout(
       `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`,
@@ -108,7 +106,21 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
     );
     if (r.ok) {
       const j: any = await r.json();
-      const name = j.city || j.locality || j.principalSubdivision;
+      const name = j.city || j.locality || j.principalSubdivision || j.countryName;
+      if (name) return name;
+    }
+  } catch { /* ignore */ }
+
+  // 备选：nominatim（OpenStreetMap，中文地名）
+  try {
+    const r = await fetchWithTimeout(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=zh`,
+      { timeoutMs: 5000 },
+    );
+    if (r.ok) {
+      const j: any = await r.json();
+      const addr = j.address || {};
+      const name = addr.city || addr.town || addr.county || addr.state || addr.country;
       if (name) return name;
     }
   } catch { /* ignore */ }
