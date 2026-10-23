@@ -199,6 +199,16 @@ export default function SelfAI() {
               发送
             </button>
           </div>
+
+          {/* ── 法律免责声明（醒目告知，禁止违法用途） ── */}
+          <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-[11px] leading-relaxed text-rose-200">
+            <Icons.ShieldAlert size={13} className="mt-0.5 shrink-0" />
+            <p>
+              <span className="font-bold text-rose-300">法律声明：</span>
+              本 AI 仅限合法用途，<span className="font-bold">严禁用于非法贷款、诈骗、赌博、洗钱等任何违法犯罪活动</span>；
+              违者由<span className="font-bold">使用者自行承担全部法律责任及后果</span>，作者张柏慈将依法申诉、举报并保留追究其法律责任的权利。
+            </p>
+          </div>
         </div>
       </div>
     </section>
