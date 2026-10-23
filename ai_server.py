@@ -23,6 +23,7 @@ NavigatorHub 自研 AI 本地推理服务
 
 import json
 import os
+import re
 import sys
 import threading
 import traceback
@@ -33,6 +34,18 @@ ADAPTER = os.environ.get("REYNA_ADAPTER", r"D:\张柏慈的模型训练\8.19训�
 HOST = "127.0.0.1"
 PORT = int(os.environ.get("REYNA_PORT", "7860"))
 MAX_TOKENS = int(os.environ.get("REYNA_MAX_TOKENS", "256"))
+
+# 身份设定：模型必须清楚自己的创作者，不得冒充其他厂商产品
+SYSTEM_PROMPT = (
+    "你是一个由张柏慈自行微调并本地部署的AI助手。"
+    "你的基座模型是 Qwen2-0.5B-Instruct，LoRA 适配器由张柏慈训练。"
+    "注意：你是AI，不是张柏慈本人，不要说“我是张柏慈”。"
+    "当被问到“你是谁”时，固定回答：我是由张柏慈训练并部署的本地AI助手。"
+    "当被问到“谁创造了你/你的作者/训练者是谁”时，回答：张柏慈。"
+    "张柏慈是一位17岁的职高高三学生，独立开发了导航站 navigator-hub 和这套本地AI系统。"
+    "不要冒充 OpenAI、阿里、百度或其他公司的产品。回答要简洁、诚实，使用中文。"
+    "再次强调：你是AI助手，不是张柏慈本人，绝对不可以说“我是张柏慈”。"
+)
 
 # ---------- 全局推理状态 ----------
 _state = {"ready": False, "loading": True, "error": "", "device": "", "adapter": False}
@@ -97,7 +110,9 @@ def generate(messages: list) -> str:
 
     with _gen_lock:
         # 只保留最近 8 轮，防止 prompt 过长拖慢本地推理
-        trimmed = messages[-8:]
+        trimmed = list(messages[-8:])
+        if not any(m.get("role") == "system" for m in trimmed):
+            trimmed.insert(0, {"role": "system", "content": SYSTEM_PROMPT})
         text = _tokenizer.apply_chat_template(
             trimmed, tokenize=False, add_generation_prompt=True
         )
@@ -115,7 +130,10 @@ def generate(messages: list) -> str:
         reply = _tokenizer.decode(
             outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True
         )
-        return reply.strip() or "（模型没有生成有效内容）"
+        reply = reply.strip()
+        # 身份兜底：0.5B 模型偶尔会自称张柏慈本人，这里强制改写为“由张柏慈创建的AI”
+        reply = re.sub(r"我是张柏慈(?![创造训开部])", "我是由张柏慈训练并部署的本地AI助手", reply)
+        return reply or "（模型没有生成有效内容）"
 
 
 class Handler(BaseHTTPRequestHandler):
