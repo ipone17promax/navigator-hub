@@ -5,6 +5,7 @@ import CommandPalette from "@/components/CommandPalette";
 import HeaderActions from "@/components/home/HeaderActions";
 import FooterActions from "@/components/home/FooterActions";
 import SearchBlock from "@/components/home/SearchBlock";
+import SelfAI from "@/components/home/SelfAI";
 import ContentArea from "@/components/home/ContentArea";
 import FavoritesStrip from "@/components/home/FavoritesStrip";
 import InfoStrip from "@/components/home/InfoStrip";
@@ -148,6 +149,7 @@ export default function HomePage() {
       {/* 单栏主体：搜索 → 收藏 → 内容 → 信息条 → 底部 */}
       <div className={`relative mx-auto flex w-full max-w-7xl flex-col transition-opacity duration-500 ${loaded ? "opacity-100" : "pointer-events-none opacity-0"}`}>
         <SearchBlock />
+        <SelfAI />
         <FavoritesStrip />
         <ContentArea />
         <InfoStrip />
