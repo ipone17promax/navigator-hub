@@ -147,7 +147,11 @@ export function useStocks() {
 
   useEffect(() => {
     void loadAll();
-    const t = setInterval(() => void loadAll(), 60 * 1000);
+    const t = setInterval(() => {
+      // 16:00 后（A股+港股均已收盘）自动停刷，避免盘后空转
+      if (new Date().getHours() >= 16) return;
+      void loadAll();
+    }, 60 * 1000);
     return () => clearInterval(t);
   }, [loadAll]);
 
