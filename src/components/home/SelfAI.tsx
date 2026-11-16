@@ -5,16 +5,21 @@ import * as Icons from "lucide-react";
  * SelfAI：自研 AI 展示与对话区
  * ---------------------------------------------------------------
  * 设计说明：
- *   1. 前端只负责 UI 与会话状态，真正的推理由本机 `ai_server.py` 提供
- *      （Qwen2-0.5B-Instruct + 本人 QLoRA 适配器，纯本地推理，不经过云端）。
- *   2. 通过 /api/health 轮询判断本地引擎是否在线；离线时明确提示，
- *      不使用任何假数据伪装 AI 回答。
+ *   1. 前端只负责 UI 与会话状态。推理有两种后端，靠 ENDPOINT 自动区分：
+ *      · 本机直连：ai_server.py（127.0.0.1:7860），走 /api/health、/api/chat
+ *      · 云端代理：Netlify Function（/.netlify/functions/ai），GET/POST 同一路径
+ *      Key 全部保存在服务端环境变量，前端拿不到，也不会消耗访客设备算力。
+ *   2. 轮询健康接口判断引擎是否在线；离线时明确提示，不伪造回答。
  *   3. 商用联系信息按作者要求公开展示：张柏慈 / 15945033555 / 周六周日。
  */
 
-const ENDPOINT = (
-  (import.meta.env.VITE_AI_ENDPOINT as string | undefined) ?? "http://127.0.0.1:7860"
-).replace(/\/+$/, "");
+const ENV_ENDPOINT = (import.meta.env.VITE_AI_ENDPOINT as string | undefined)?.replace(/\/+$/, "");
+/** 默认走同域 Netlify Function；本地开发可用 VITE_AI_ENDPOINT 指向 127.0.0.1:7860 */
+const ENDPOINT = ENV_ENDPOINT ?? "/.netlify/functions/ai";
+/** 本机直连模式用的是子路径，云端函数模式同一路径即可 */
+const DIRECT = /^https?:\/\/(127\.0\.0\.1|localhost)/.test(ENDPOINT);
+const HEALTH_URL = DIRECT ? `${ENDPOINT}/api/health` : ENDPOINT;
+const CHAT_URL = DIRECT ? `${ENDPOINT}/api/chat` : ENDPOINT;
 
 type Role = "user" | "assistant";
 interface ChatMsg {
@@ -42,7 +47,7 @@ export default function SelfAI() {
     let alive = true;
     const probe = async () => {
       try {
-        const res = await fetch(`${ENDPOINT}/api/health`, { signal: timeoutSignal(2500) });
+        const res = await fetch(HEALTH_URL, { signal: timeoutSignal(2500) });
         const data = (await res.json()) as { ok?: boolean };
         if (alive) setStatus(data?.ok ? "online" : "offline");
       } catch {
@@ -74,7 +79,7 @@ export default function SelfAI() {
     setInput("");
     setPending(true);
     try {
-      const res = await fetch(`${ENDPOINT}/api/chat`, {
+      const res = await fetch(CHAT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: history }),
@@ -91,7 +96,9 @@ export default function SelfAI() {
         ...history,
         {
           role: "assistant",
-          content: `⚠ 本地引擎未连接（${reason}）。\n请确认已运行 ai_server.py，且端口 7860 未被占用。`,
+          content: DIRECT
+            ? `⚠ 本地引擎未连接（${reason}）。\n请确认已运行 ai_server.py，且端口 7860 未被占用。`
+            : `⚠ 云端引擎暂时不可用（${reason}）。请稍后再试。`,
         },
       ]);
     } finally {
@@ -100,9 +107,15 @@ export default function SelfAI() {
   }, [input, messages, pending]);
 
   const statusText =
-    status === "online" ? "本地引擎在线" : status === "checking" ? "正在探测引擎…" : "本地引擎未启动";
+    status === "online"
+      ? DIRECT ? "本地引擎在线" : "云端引擎在线"
+      : status === "checking"
+        ? "正在探测引擎…"
+        : "引擎离线";
   const statusColor =
     status === "online" ? "bg-emerald-400" : status === "checking" ? "bg-amber-400" : "bg-rose-500";
+  const engineLabel = DIRECT ? "自研 AI · 本地微调引擎" : "自研 AI · 云端引擎";
+  const engineDetail = DIRECT ? "Qwen2-0.5B + LoRA · 纯本地推理" : "服务端推理 · 不占用访客设备";
 
   return (
     <section className="relative z-10 px-4 pb-4 pt-2 sm:px-6">
@@ -115,7 +128,7 @@ export default function SelfAI() {
             </div>
             <div className="leading-tight">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-extrabold tracking-wide text-white">自研 AI · 本地微调引擎</span>
+                <span className="text-sm font-extrabold tracking-wide text-white">{engineLabel}</span>
                 <span className="rounded-full border border-fuchsia-300/40 bg-fuchsia-500/20 px-2 py-0.5 text-[10px] font-bold tracking-widest text-fuchsia-200">
                   SELF-DEVELOPED
                 </span>
@@ -123,7 +136,7 @@ export default function SelfAI() {
               <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-muted">
                 <span className={`h-1.5 w-1.5 rounded-full ${statusColor} ${status === "online" ? "animate-pulse" : ""}`} />
                 {statusText}
-                <span className="opacity-60">· Qwen2-0.5B + LoRA · 纯本地推理</span>
+                <span className="opacity-60">· {engineDetail}</span>
               </div>
             </div>
           </div>
@@ -146,8 +159,8 @@ export default function SelfAI() {
             {messages.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center gap-1 text-center text-[12px] text-ink-muted">
                 <Icons.Sparkles size={18} className="text-fuchsia-300/80" />
-                <p>这是由本人自行训练并部署的本地 AI，不调用任何第三方大模型接口。</p>
-                <p className="opacity-70">启动 ai_server.py 后即可对话；离线时不会伪造回答。</p>
+                <p>{DIRECT ? "这是由本人自行训练并部署的本地 AI，不调用任何第三方大模型接口。" : "这是由张柏慈部署的 AI 助手，可直接提问。"}</p>
+                <p className="opacity-70">{DIRECT ? "启动 ai_server.py 后即可对话；离线时不会伪造回答。" : "引擎在线即可对话；离线时不会伪造回答。"}</p>
               </div>
             )}
             {messages.map((m, i) => (
@@ -186,7 +199,7 @@ export default function SelfAI() {
                   void send();
                 }
               }}
-              placeholder={status === "online" ? "向本地自研 AI 提问…" : "本地引擎未启动，仍可输入（发送会提示连接失败）"}
+              placeholder={status === "online" ? "向自研 AI 提问…" : "引擎离线，仍可输入（发送会提示连接失败）"}
               className="min-w-0 flex-1 bg-transparent text-[13px] text-ink outline-none placeholder:text-ink-muted/70"
             />
             <button

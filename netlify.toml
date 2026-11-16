@@ -2,6 +2,10 @@
   command = "npm run build"
   publish = "dist"
 
+# 云端 AI 代理函数目录（前端 / .netlify/functions/ai 调用）
+[functions]
+  directory = "netlify/functions"
+
 # ============================================================
 # 边缘压缩：Brotli（优于 gzip，Netlify CDN 自动协商）
 # ============================================================
