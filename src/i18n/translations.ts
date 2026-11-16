@@ -46,6 +46,8 @@ export interface Dict {
   news: { title: string };
   // === 公共短文案 ===
   common: { refresh: string; pause: string; play: string };
+  // === 首屏引导 ===
+  intro: { title: string; tagline: string; step1: string; step2: string; step3: string; dismiss: string };
   // === 360 左侧栏 ===
   categories: { title: string; all: string; list: Record<string, string> };
   favorites: { title: string; empty: string };
@@ -107,6 +109,14 @@ export const dict: Record<Locale, Dict> = {
     stock: { title: "股市行情" },
     news: { title: "新闻速递" },
     common: { refresh: "刷新", pause: "暂停", play: "继续" },
+    intro: {
+      title: "30 秒看懂",
+      tagline: "把搜索、常用网站、A 股行情、新闻和 4 个小工具收进一屏，打开就能用，不用再翻收藏夹。",
+      step1: "顶部输入关键词，或按 / 直接聚焦搜索框",
+      step2: "下方切分类、点卡片直达站点，⭐ 收藏到顶部",
+      step3: "底部信息条看行情与新闻，快捷工具进入小工具页",
+      dismiss: "知道了",
+    },
     categories: { title: "网站分类", all: "全部网站", list: { all: "全部", dev: "开发", design: "设计", study: "学习", life: "生活", ai: "AI", tools: "工具", social: "社交", video: "影音", office: "办公", weather: "气象", search: "搜索" } },
     favorites: { title: "我的收藏", empty: "还没有收藏，点站点卡片 ⭐ 收藏" },
   },
@@ -155,6 +165,14 @@ export const dict: Record<Locale, Dict> = {
     stock: { title: "Stock Market" },
     news: { title: "News Stream" },
     common: { refresh: "Refresh", pause: "Pause", play: "Resume" },
+    intro: {
+      title: "In 30 seconds",
+      tagline: "Search, bookmarks, A-share quotes, news and 4 mini tools on one screen. Open and use, no bookmark digging.",
+      step1: "Type a keyword up top, or press / to focus search",
+      step2: "Switch categories below and tap a card to open a site; ⭐ saves it to the top",
+      step3: "The bottom strip shows quotes and news; Quick Tools opens the utility pages",
+      dismiss: "Got it",
+    },
     categories: { title: "Categories", all: "All Sites", list: { all: "All", dev: "Dev", design: "Design", study: "Study", life: "Life", ai: "AI", tools: "Tools", social: "Social", video: "Video", office: "Office", weather: "Weather", search: "Search" } },
     favorites: { title: "Favorites", empty: "No favorites yet. Tap ⭐ on a site card." },
   },

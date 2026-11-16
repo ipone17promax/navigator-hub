@@ -4,6 +4,7 @@ import SearchHero from "@/components/SearchHero";
 import SearchTabs from "@/components/SearchTabs";
 import { HighFreqBar } from "@/components/HealthAndFreq";
 import QuickTools from "@/components/QuickTools";
+import IntroGuide from "@/components/home/IntroGuide";
 
 /**
  * 360 风格「搜索主区」：
@@ -31,6 +32,7 @@ export default function SearchBlock() {
           <SearchTabs />
           <SearchHero />
         </div>
+        <IntroGuide />
         <HighFreqBar />
         <QuickTools />
       </div>
