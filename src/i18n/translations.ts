@@ -48,6 +48,8 @@ export interface Dict {
   common: { refresh: string; pause: string; play: string };
   // === 首屏引导 ===
   intro: { title: string; tagline: string; step1: string; step2: string; step3: string; dismiss: string };
+  // === 内容中心 ===
+  content: { flash: string; hot: string; hotFrom: string; quote: string; picks: string; retry: string; retryHint: string; empty: string };
   // === 360 左侧栏 ===
   categories: { title: string; all: string; list: Record<string, string> };
   favorites: { title: string; empty: string };
@@ -117,6 +119,16 @@ export const dict: Record<Locale, Dict> = {
       step3: "底部信息条看行情与新闻，快捷工具进入小工具页",
       dismiss: "知道了",
     },
+    content: {
+      flash: "今日快讯",
+      hot: "微博热搜",
+      hotFrom: "数据：微博",
+      quote: "每日一句",
+      picks: "今日推荐",
+      retry: "重试",
+      retryHint: "内容暂时获取失败，可稍后重试",
+      empty: "暂无内容",
+    },
     categories: { title: "网站分类", all: "全部网站", list: { all: "全部", dev: "开发", design: "设计", study: "学习", life: "生活", ai: "AI", tools: "工具", social: "社交", video: "影音", office: "办公", weather: "气象", search: "搜索" } },
     favorites: { title: "我的收藏", empty: "还没有收藏，点站点卡片 ⭐ 收藏" },
   },
@@ -172,6 +184,16 @@ export const dict: Record<Locale, Dict> = {
       step2: "Switch categories below and tap a card to open a site; ⭐ saves it to the top",
       step3: "The bottom strip shows quotes and news; Quick Tools opens the utility pages",
       dismiss: "Got it",
+    },
+    content: {
+      flash: "Today's Brief",
+      hot: "Weibo Trends",
+      hotFrom: "via Weibo",
+      quote: "Daily Quote",
+      picks: "Today's Picks",
+      retry: "Retry",
+      retryHint: "Content temporarily unavailable. Try again later.",
+      empty: "No content yet",
     },
     categories: { title: "Categories", all: "All Sites", list: { all: "All", dev: "Dev", design: "Design", study: "Study", life: "Life", ai: "AI", tools: "Tools", social: "Social", video: "Video", office: "Office", weather: "Weather", search: "Search" } },
     favorites: { title: "Favorites", empty: "No favorites yet. Tap ⭐ on a site card." },

@@ -6,6 +6,7 @@ import HeaderActions from "@/components/home/HeaderActions";
 import FooterActions from "@/components/home/FooterActions";
 import SearchBlock from "@/components/home/SearchBlock";
 import ContentArea from "@/components/home/ContentArea";
+import ContentCenter from "@/components/home/ContentCenter";
 import FavoritesStrip from "@/components/home/FavoritesStrip";
 import InfoStrip from "@/components/home/InfoStrip";
 import { useAppStore } from "@/stores/useAppStore";
@@ -150,6 +151,7 @@ export default function HomePage() {
         <SearchBlock />
         <FavoritesStrip />
         <ContentArea />
+        <ContentCenter />
         <InfoStrip />
         <FooterActions />
       </div>
