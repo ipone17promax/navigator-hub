@@ -1,4 +1,4 @@
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useI18n } from "@/i18n";
 import { useUserStore } from "@/stores/useUserStore";
 

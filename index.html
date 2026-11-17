@@ -8,15 +8,10 @@
     <meta name="theme-color" content="#0A0A1A" />
     <meta name="description" content="NavigatorHub - 赛博未来主义高级网址导航中心" />
     <title>NavigatorHub · 你的星际导航中心</title>
-    <!-- 资源预连接：提前建立 TCP/TLS，减少首屏等待 -->
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link rel="dns-prefetch" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
-      rel="stylesheet"
-    />
+    <!--
+      字体策略：不再外链 Google Fonts（国内会被阻断且拖慢首屏，实测白屏 1~3s）。
+      改用系统字体栈（见 index.css），零额外请求、零 FOIT。
+    -->
     <!-- 首屏关键样式内联：避免 FOUC 闪烁 -->
     <style>
       html,body{margin:0;padding:0;background:var(--bg-base,#0A0A1A);color:var(--ink-default,#fff);}

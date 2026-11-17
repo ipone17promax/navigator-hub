@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useI18n } from "@/i18n";
 import { useFlashNews } from "@/hooks/useFlashNews";
 import { SITES } from "@/config/sites";
+import { EDITORIAL_LINKS, EDITORIAL_TIPS } from "@/config/editorial";
 import { resolveIcon } from "@/lib/icons";
 
 const QUOTES: { text: string; from: string }[] = [
@@ -77,6 +78,11 @@ export default function ContentCenter() {
               <Icons.Zap size={16} className="text-amber-400" />
               <span className="text-[13px] font-semibold text-ink/80">{t.content.flash}</span>
               {date && <span className="text-[10px] text-ink-subtle">{date}</span>}
+              {err && flash.length === 0 && (
+                <span className="rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">
+                  {t.content.fallback}
+                </span>
+              )}
             </div>
             <button
               onClick={() => void load(true)}
@@ -94,10 +100,23 @@ export default function ContentCenter() {
               ))}
             </div>
           ) : err && flash.length === 0 ? (
-            <div className="flex h-40 flex-col items-center justify-center gap-2 text-[11px] text-ink-muted">
-              <span>{t.content.retryHint}</span>
-              <button onClick={() => void load(true)} className="rounded-lg border border-stroke px-3 py-1.5 text-xs text-ink hover:bg-white/5">
-                {t.content.retry}
+            <div>
+              <p className="mb-2 text-[11px] text-ink-muted">{t.content.fallbackHint}</p>
+              <ol className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                {EDITORIAL_TIPS.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 rounded-lg px-1 py-1 text-[12px] leading-relaxed text-ink/80">
+                    <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-md bg-amber-500/15 text-[10px] font-bold text-amber-500">
+                      {i + 1}
+                    </span>
+                    <span className="line-clamp-3">{item}</span>
+                  </li>
+                ))}
+              </ol>
+              <button
+                onClick={() => void load(true)}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-stroke px-3 py-1.5 text-xs text-ink hover:bg-white/5"
+              >
+                <Icons.RefreshCw size={12} className={loading ? "animate-spin" : ""} /> {t.content.retry}
               </button>
             </div>
           ) : (
@@ -149,10 +168,28 @@ export default function ContentCenter() {
                   </a>
                 </li>
               ))}
-              {hot.length === 0 && (
-                <li className="py-6 text-center text-[11px] text-ink-muted">
-                  {err ? t.content.retryHint : t.content.empty}
-                </li>
+              {hot.length === 0 && err && (
+                <>
+                  {EDITORIAL_LINKS.map((item, i) => (
+                    <li key={item.title}>
+                      <a
+                        href={item.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-center gap-2 rounded-lg px-1 py-1.5 transition-colors hover:bg-white/5"
+                      >
+                        <span className="inline-flex w-4 shrink-0 justify-center text-[11px] font-bold text-ink-subtle">
+                          {i + 1}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[12px] text-ink/80 group-hover:text-ink">{item.title}</span>
+                      </a>
+                    </li>
+                  ))}
+                  <li className="pt-1 text-center text-[10px] text-ink-subtle">{t.content.fallback}</li>
+                </>
+              )}
+              {hot.length === 0 && !err && (
+                <li className="py-6 text-center text-[11px] text-ink-muted">{t.content.empty}</li>
               )}
             </ol>
           )}

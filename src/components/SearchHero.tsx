@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useAppStore } from "@/stores/useAppStore";
 import { SEARCH_ENGINES } from "@/config/sites";
 import { logger } from "@/lib/logger";
@@ -9,6 +9,49 @@ import type { LucideIcon } from "lucide-react";
 const icon = (name: string): LucideIcon =>
   (Icons as unknown as Record<string, LucideIcon>)[name] ?? Icons.Search;
 
+const HISTORY_KEY = "nh.search.history";
+const HISTORY_MAX = 8;
+
+/** bang 语法：!前缀 + 空格 + 关键词，绕过当前引擎直连指定站点 */
+const BANGS: Record<string, { name: string; template: string }> = {
+  g: { name: "Google", template: "https://www.google.com/search?q={query}" },
+  gh: { name: "GitHub", template: "https://github.com/search?q={query}" },
+  npm: { name: "npm", template: "https://www.npmjs.com/search?q={query}" },
+  so: { name: "Stack Overflow", template: "https://stackoverflow.com/search?q={query}" },
+  bd: { name: "百度", template: "https://www.baidu.com/s?wd={query}" },
+  bing: { name: "Bing", template: "https://www.bing.com/search?q={query}" },
+  zh: { name: "知乎", template: "https://www.zhihu.com/search?type=content&q={query}" },
+  yt: { name: "YouTube", template: "https://www.youtube.com/results?search_query={query}" },
+  bili: { name: "B站", template: "https://search.bilibili.com/all?keyword={query}" },
+  wiki: { name: "Wikipedia", template: "https://zh.wikipedia.org/wiki/Special:Search?search={query}" },
+  mdn: { name: "MDN", template: "https://developer.mozilla.org/zh-CN/search?q={query}" },
+};
+
+/** 判断输入是否像一个网址（含协议，或裸域名 + 可选路径） */
+function looksLikeUrl(s: string) {
+  if (/\s/.test(s)) return false;
+  if (/^https?:\/\//i.test(s)) return true;
+  return /^[\w-]+(\.[\w-]+)+(\/[^\s]*)?(\?[^\s]*)?(#\S*)?$/i.test(s);
+}
+
+function normalizeUrl(s: string) {
+  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+}
+
+type Resolved =
+  | { kind: "url"; url: string; label: string }
+  | { kind: "bang"; url: string; label: string; rest: string }
+  | { kind: "search"; url: string; label: string };
+
+function loadHistory(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string").slice(0, HISTORY_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function SearchHero() {
   const engineId = useAppStore((s) => s.activeEngineId);
   const setEngineId = useAppStore((s) => s.setActiveEngineId);
@@ -17,6 +60,8 @@ export default function SearchHero() {
   const { t } = useI18n();
 
   const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [history, setHistory] = useState<string[]>(loadHistory);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -25,6 +70,32 @@ export default function SearchHero() {
     () => engines.find((e) => e.id === engineId) ?? engines[0],
     [engines, engineId],
   );
+
+  /** 解析输入：网址直达 / !bang 指定引擎 / 当前引擎搜索 */
+  const resolved = useMemo<Resolved | null>(() => {
+    const q = keyword.trim();
+    if (!q) return null;
+    const bang = /^!([a-zA-Z]+)\s+([\s\S]+)$/.exec(q);
+    if (bang) {
+      const key = bang[1].toLowerCase();
+      const preset = BANGS[key];
+      if (preset) {
+        const rest = bang[2].trim();
+        return {
+          kind: "bang",
+          url: preset.template.replace("{query}", encodeURIComponent(rest)),
+          label: preset.name,
+          rest,
+        };
+      }
+    }
+    if (looksLikeUrl(q)) return { kind: "url", url: normalizeUrl(q), label: q };
+    return {
+      kind: "search",
+      url: activeEngine.urlTemplate.replace("{query}", encodeURIComponent(q)),
+      label: activeEngine.name,
+    };
+  }, [keyword, activeEngine]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -51,15 +122,52 @@ export default function SearchHero() {
     return () => window.removeEventListener("mousedown", onClick);
   }, [open]);
 
+  const pushHistory = (entry: string) => {
+    const next = [entry, ...history.filter((h) => h !== entry)].slice(0, HISTORY_MAX);
+    setHistory(next);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+    } catch {
+      /* 隐私模式下写不进去，忽略 */
+    }
+  };
+
+  const clearHistory = () => {
+    setHistory([]);
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
+
   const doSearch = (raw: string) => {
     const q = raw.trim();
     if (!q) return;
-    logger.info("SearchHero", "submit", { keyword: q, engine: activeEngine.id });
-    const url = activeEngine.urlTemplate.replace("{query}", encodeURIComponent(q));
+    const bang = /^!([a-zA-Z]+)\s+([\s\S]+)$/.exec(q);
+    const preset = bang ? BANGS[bang[1].toLowerCase()] : undefined;
+    let url: string;
+    let loggedQuery = q;
+    if (preset && bang) {
+      loggedQuery = bang[2].trim();
+      url = preset.template.replace("{query}", encodeURIComponent(loggedQuery));
+      pushHistory(q);
+    } else if (looksLikeUrl(q)) {
+      url = normalizeUrl(q);
+      pushHistory(q);
+    } else {
+      url = activeEngine.urlTemplate.replace("{query}", encodeURIComponent(q));
+      pushHistory(q);
+    }
+    logger.info("SearchHero", "submit", {
+      keyword: loggedQuery,
+      engine: preset ? preset.name : activeEngine.id,
+    });
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const EngineIcon = icon(activeEngine.iconName);
+  const showHistory = focused && !keyword.trim() && history.length > 0;
 
   return (
     <div className="relative mx-auto w-full max-w-[880px] animate-fade-in-up" style={{ animationDelay: "80ms" }}>
@@ -70,6 +178,8 @@ export default function SearchHero() {
             onClick={() => setOpen((o) => !o)}
             className="flex h-full items-center gap-2 rounded-l-2xl border-r border-stroke px-4 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.engineSwitch}
+            aria-label={t.engineSwitch}
+            aria-expanded={open}
           >
             <EngineIcon size={20} style={{ color: activeEngine.accent }} />
             <span className="hidden text-sm font-medium sm:inline-block">{activeEngine.name}</span>
@@ -117,6 +227,8 @@ export default function SearchHero() {
             type="search"
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => window.setTimeout(() => setFocused(false), 120)}
             onKeyDown={(e) => {
               if (e.key === "Enter") doSearch(keyword);
               if (e.key === "Escape") {
@@ -124,6 +236,7 @@ export default function SearchHero() {
               }
             }}
             placeholder={t.searchPlaceholder}
+            aria-label={t.searchPlaceholder}
             className="block h-full w-full bg-transparent px-12 py-4 text-lg text-ink placeholder:text-ink-subtle outline-none"
           />
           <div className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-1 text-[11px] text-ink-subtle md:flex">
@@ -143,22 +256,76 @@ export default function SearchHero() {
         </button>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-        <span className="text-xs text-ink-subtle">{t.hotSearch}</span>
-        {["React 18", "TypeScript", "Tailwind", "AI", "Vite"].map((tag, i) => (
+      {/* 实时解析提示：让「按回车会发生什么」一目了然 */}
+      {resolved && (
+        <div className="mt-2 flex items-center justify-center gap-2 text-[11px] text-ink-subtle animate-fade-in">
+          {resolved.kind === "url" && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-stroke bg-bg-elevate/60 px-2.5 py-1">
+              <Icons.ExternalLink size={12} className="text-brand-primary" />
+              {t.search.urlHint}
+            </span>
+          )}
+          {resolved.kind === "bang" && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-stroke bg-bg-elevate/60 px-2.5 py-1">
+              <Icons.Command size={12} className="text-brand-primary" />
+              {t.search.bangHint} · {resolved.label}
+            </span>
+          )}
+          {resolved.kind === "search" && (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-stroke bg-bg-elevate/60 px-2.5 py-1">
+              <EngineIcon size={12} style={{ color: activeEngine.accent }} />
+              {resolved.label}
+            </span>
+          )}
+        </div>
+      )}
+
+      {showHistory ? (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2 animate-fade-in">
+          <span className="text-xs text-ink-subtle">{t.search.history}</span>
+          {history.map((h) => (
+            <button
+              key={h}
+              type="button"
+              // 阻止默认 mousedown 抢焦点，避免下拉还没点就因 blur 消失
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setKeyword(h);
+                doSearch(h);
+              }}
+              className="max-w-[220px] truncate rounded-full border border-stroke bg-bg-elevate/50 px-3 py-1 text-xs text-ink-muted transition-all duration-200 hover:border-stroke-hover hover:text-ink"
+              title={h}
+            >
+              {h}
+            </button>
+          ))}
           <button
-            key={tag}
-            onClick={() => {
-              setKeyword(tag);
-              doSearch(tag);
-            }}
-            className="rounded-full border border-stroke bg-bg-elevate/50 px-3 py-1 text-xs text-ink-muted transition-all duration-200 hover:border-stroke-hover hover:text-ink"
-            style={{ animation: `fadeInUp .6s ${120 + i * 60}ms both` }}
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={clearHistory}
+            className="rounded-full px-2 py-1 text-xs text-ink-subtle transition-colors hover:text-ink"
           >
-            #{tag}
+            {t.search.clear}
           </button>
-        ))}
-      </div>
+        </div>
+      ) : (
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs text-ink-subtle">{t.hotSearch}</span>
+          {["React 18", "TypeScript", "Tailwind", "AI", "Vite"].map((tag, i) => (
+            <button
+              key={tag}
+              onClick={() => {
+                setKeyword(tag);
+                doSearch(tag);
+              }}
+              className="rounded-full border border-stroke bg-bg-elevate/50 px-3 py-1 text-xs text-ink-muted transition-all duration-200 hover:border-stroke-hover hover:text-ink"
+              style={{ animation: `fadeInUp .6s ${120 + i * 60}ms both` }}
+            >
+              #{tag}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

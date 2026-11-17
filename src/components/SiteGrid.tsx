@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import SiteCard from "./SiteCard";
 import { SITES, CATEGORIES } from "@/config/sites";
 import { useAppStore } from "@/stores/useAppStore";

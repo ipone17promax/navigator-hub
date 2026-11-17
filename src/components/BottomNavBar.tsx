@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useAppStore } from "@/stores/useAppStore";
 import { useI18n } from "@/i18n";
 import { Link, useLocation } from "react-router-dom";
@@ -57,7 +57,7 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
       <div className="flex items-center justify-between gap-1 rounded-2xl border border-stroke bg-bg-base/80 px-1.5 py-1.5 shadow-card backdrop-blur-xl">
         <button onClick={() => openCmd()}
           className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-          title="Cmd+K">
+          title="Cmd+K" aria-label={t.cmd.title}>
           <Icons.Command size={18} />
         </button>
 
@@ -73,6 +73,8 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
                   active ? "bg-brand-gradient text-white shadow-glow scale-105" : "text-ink-muted hover:bg-white/5 hover:text-ink"
                 }`}
                 title={t.nav[it.key]}
+                aria-label={t.nav[it.key]}
+                aria-current={active ? "page" : undefined}
               >
                 <I size={18} />
               </Link>
@@ -90,37 +92,37 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
           )}
           <button onClick={onOpenStats}
             className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-            title={t.stats.title}>
+            title={t.stats.title} aria-label={t.stats.title}>
             <Icons.BarChart3 size={16} />
           </button>
           <button onClick={onOpenBg}
             className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-            title={t.bg.title}>
+            title={t.bg.title} aria-label={t.bg.title}>
             <Icons.Palette size={16} />
           </button>
           <button onClick={onOpenCustom}
             className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-            title={t.custom.title}>
+            title={t.custom.title} aria-label={t.custom.title}>
             <Icons.FolderPlus size={16} />
           </button>
           <button onClick={onOpenSync}
             className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-            title={t.sync.title}>
+            title={t.sync.title} aria-label={t.sync.title}>
             <Icons.Repeat size={16} />
           </button>
           <button onClick={onOpenTheme}
             className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-            title={t.settings}>
+            title={t.settings} aria-label={t.settings}>
             <Icons.Settings size={16} />
           </button>
           <button onClick={toggleTheme}
             className="hidden h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink md:flex"
-            title={t.theme.title}>
+            title={t.theme.title} aria-label={t.theme.title}>
             <Icons.Moon size={16} />
           </button>
           <button onClick={toggle}
             className="flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-xs font-bold text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-            title={t.language}>
+            title={t.language} aria-label={t.language}>
             {locale === "zh" ? "EN" : "中"}
           </button>
         </div>

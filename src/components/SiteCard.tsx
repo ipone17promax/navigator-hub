@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useUserStore } from "@/stores/useUserStore";
 import { logger } from "@/lib/logger";
 import { useI18n } from "@/i18n";

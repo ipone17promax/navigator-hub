@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useAppStore } from "@/stores/useAppStore";
 import { SITES, CATEGORIES, SEARCH_ENGINES } from "@/config/sites";
 import { useUserStore } from "@/stores/useUserStore";
@@ -120,6 +120,8 @@ export default function CommandPalette() {
       { id: "t_binary",  group: t.cmd.groups.tools, title: t.nav.binary,  icon: Icons.Binary,         color: "#a78bfa", onRun: () => nav("/binary-parser") },
       { id: "t_morse",   group: t.cmd.groups.tools, title: t.nav.morse,   icon: Icons.Radio,          color: "#f472b6", onRun: () => nav("/morse-code") },
       { id: "t_compass", group: t.cmd.groups.tools, title: t.nav.clock,   icon: Icons.Compass,        color: "#fb923c", onRun: () => nav("/compass-clock") },
+      { id: "t_qr",      group: t.cmd.groups.tools, title: t.nav.qr,      icon: Icons.QrCode,         color: "#22d3ee", onRun: () => nav("/qr-code") },
+      { id: "t_json",    group: t.cmd.groups.tools, title: t.nav.json,    icon: Icons.Braces,         color: "#fbbf24", onRun: () => nav("/json-formatter") },
       { id: "t_home",    group: t.cmd.groups.tools, title: t.nav.home,    icon: Icons.Home,           color: "#34d399", onRun: () => nav("/") },
     ].filter((x) => !low || x.title.toLowerCase().includes(low));
 

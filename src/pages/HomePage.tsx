@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useI18n } from "@/i18n";
 import CommandPalette from "@/components/CommandPalette";
 import HeaderActions from "@/components/home/HeaderActions";
@@ -39,7 +39,8 @@ export default function HomePage() {
   const unlocked = useUserStore((s) => s.privateUnlocked);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setLoaded(true), 400);
+    // 只做一次极短过渡（避免整屏遮罩拖慢首屏 LCP），不做人为等待
+    const t1 = setTimeout(() => setLoaded(true), 120);
     return () => clearTimeout(t1);
   }, []);
 

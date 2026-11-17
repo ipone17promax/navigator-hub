@@ -1,9 +1,35 @@
 import { useRef, useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import qrcode from "qrcode-generator";
 import { useUserStore } from "@/stores/useUserStore";
 import { useI18n } from "@/i18n";
 import { decodeSync, encodeSync, extractSyncCode } from "@/lib/syncCode";
+import {
+  downloadFromGist,
+  getGistId,
+  getGistToken,
+  setGistId,
+  setGistToken,
+  uploadToGist,
+  type GistPayload,
+} from "@/lib/gistSync";
+
+/** 只同步“个人资产”，不带访问统计与健康缓存，控制体积（二维码 / Gist 共用） */
+function buildPayload(): GistPayload {
+  const s = useUserStore.getState();
+  return {
+    v: 3,
+    favorites: s.favorites,
+    favoriteOrder: s.favoriteOrder,
+    visits: [],
+    customCats: s.customCats,
+    customSites: s.customSites,
+    categoryOrder: s.categoryOrder,
+    layout: s.layout,
+    privatePwdHash: s.privatePwdHash,
+    health: {},
+  };
+}
 
 export default function DataSync() {
   const { t } = useI18n();
@@ -13,6 +39,20 @@ export default function DataSync() {
   const [qr, setQr] = useState<{ svg: string; url: string; size: number } | null>(null);
   const [qrErr, setQrErr] = useState("");
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // --- 云同步（GitHub Gist）状态 ---
+  const [token, setToken] = useState<string>(getGistToken);
+  const [gistInput, setGistInput] = useState<string>(getGistId);
+  const [gistUrl, setGistUrl] = useState<string>(() => {
+    const id = getGistId();
+    return id ? `https://gist.github.com/${id}` : "";
+  });
+  const [busy, setBusy] = useState<"" | "up" | "down">("");
+
+  const flash = (msg: string, ms = 2200) => {
+    setTip(msg);
+    setTimeout(() => setTip(""), ms);
+  };
 
   const doExport = () => {
     const raw = store.exportJSON();
@@ -30,21 +70,7 @@ export default function DataSync() {
     setQrErr("");
     setQr(null);
     try {
-      const s = useUserStore.getState();
-      // 只同步“个人资产”，不带访问统计与健康缓存，控制二维码体积
-      const payload = {
-        v: 3,
-        favorites: s.favorites,
-        favoriteOrder: s.favoriteOrder,
-        visits: [],
-        customCats: s.customCats,
-        customSites: s.customSites,
-        categoryOrder: s.categoryOrder,
-        layout: s.layout,
-        privatePwdHash: s.privatePwdHash,
-        health: {},
-      };
-      const code = await encodeSync(payload);
+      const code = await encodeSync(buildPayload());
       const url = `${location.origin}${location.pathname}?sync=${code}`;
       try {
         const q = qrcode(0, "L");
@@ -87,6 +113,49 @@ export default function DataSync() {
     store.wipe();
     setTip("OK");
     setTimeout(() => setTip(""), 2000);
+  };
+
+  const saveToken = () => {
+    const v = token.trim();
+    if (!v) return;
+    setGistToken(v);
+    flash(t.ok);
+  };
+
+  const clearToken = () => {
+    setGistToken("");
+    setToken("");
+    flash(t.gist.clear);
+  };
+
+  const doUpload = async () => {
+    const v = token.trim();
+    if (!v) return flash(t.gist.noToken);
+    setBusy("up");
+    try {
+      const r = await uploadToGist(v, buildPayload());
+      setGistId(r.id);
+      setGistInput(r.id);
+      setGistUrl(r.url);
+      flash(t.gist.upOk, 3000);
+    } catch (e) {
+      flash(`${t.gist.fail} · ${e instanceof Error ? e.message : String(e)}`, 4000);
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const doDownload = async () => {
+    setBusy("down");
+    try {
+      const data = await downloadFromGist(gistInput.trim(), token.trim());
+      const ok = store.importJSON(JSON.stringify(data));
+      flash(ok ? t.gist.downOk : t.sync.fail, 3000);
+    } catch (e) {
+      flash(`${t.gist.fail} · ${e instanceof Error ? e.message : String(e)}`, 4000);
+    } finally {
+      setBusy("");
+    }
   };
 
   return (
@@ -138,6 +207,64 @@ export default function DataSync() {
           className="mt-2 inline-flex items-center gap-2 rounded-xl border border-stroke bg-bg-elevate px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-white/5">
           <Icons.Upload size={16} /> {t.sync.import}
         </button>
+      </div>
+
+      {/* ===== 云同步：GitHub Gist（用户自带令牌，数据存进用户自己的私密 Gist） ===== */}
+      <div className="rounded-2xl border border-stroke bg-bg-elevate/40 p-4">
+        <div className="mb-2 flex items-center gap-2">
+          <Icons.CloudCog size={15} className="text-brand-primary" />
+          <p className="text-sm font-semibold text-ink">{t.gist.title}</p>
+        </div>
+        <p className="mb-3 text-[11px] leading-relaxed text-ink-subtle">{t.gist.hint}</p>
+
+        <label className="mb-1 block text-[11px] font-medium text-ink-subtle">{t.gist.token}</label>
+        <div className="flex gap-2">
+          <input
+            type="password"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder={t.gist.tokenPh}
+            autoComplete="off"
+            spellCheck={false}
+            className="min-w-0 flex-1 rounded-xl border border-stroke bg-bg-base/60 px-3 py-2 font-mono text-xs text-ink outline-none transition-colors placeholder:text-ink-subtle focus:border-brand-primary"
+          />
+          <button onClick={saveToken}
+            className="shrink-0 rounded-xl border border-stroke px-3 py-2 text-xs font-medium text-ink transition-colors hover:bg-white/5">
+            {t.gist.save}
+          </button>
+          {token && (
+            <button onClick={clearToken}
+              className="shrink-0 rounded-xl border border-red-500/30 px-3 py-2 text-xs font-medium text-red-300 transition-colors hover:bg-red-500/10">
+              {t.gist.clear}
+            </button>
+          )}
+        </div>
+
+        <label className="mb-1 mt-3 block text-[11px] font-medium text-ink-subtle">Gist ID</label>
+        <input
+          value={gistInput}
+          onChange={(e) => setGistInput(e.target.value)}
+          placeholder={t.gist.idPh}
+          spellCheck={false}
+          className="w-full rounded-xl border border-stroke bg-bg-base/60 px-3 py-2 font-mono text-xs text-ink outline-none transition-colors placeholder:text-ink-subtle focus:border-brand-primary"
+        />
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button onClick={doUpload} disabled={busy !== ""}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-gradient px-4 py-2 text-sm font-semibold text-white shadow-glow transition-all hover:-translate-y-0.5 disabled:opacity-60">
+            <Icons.Upload size={15} /> {busy === "up" ? "…" : t.gist.upload}
+          </button>
+          <button onClick={doDownload} disabled={busy !== ""}
+            className="inline-flex items-center gap-2 rounded-xl border border-stroke bg-bg-elevate px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-white/5 disabled:opacity-60">
+            <Icons.Download size={15} /> {busy === "down" ? "…" : t.gist.download}
+          </button>
+          {gistUrl && (
+            <a href={gistUrl} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 self-center text-xs text-brand-primary hover:underline">
+              <Icons.ExternalLink size={12} /> {t.gist.open}
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );

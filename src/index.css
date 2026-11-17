@@ -192,13 +192,31 @@ body,
 
 body {
   margin: 0;
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
-    "PingFang SC", "Microsoft YaHei", sans-serif;
+  /* 系统字体栈：零外链、零 FOIT，Windows/macOS/Android/iOS 均落到原生最优字体 */
+  font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", Roboto, sans-serif;
   color: var(--ink-default);
   background-color: var(--bg-base);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+/* 尊重系统「减少动态效果」偏好：关闭装饰性动画，保留功能可用 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 设置抽屉兜底：旧内核不支持 color-mix() 时用实色背景，避免面板透明穿透页面 */
+aside[role="dialog"] {
+  background-color: var(--bg-base);
 }
 
 /* ============================================================

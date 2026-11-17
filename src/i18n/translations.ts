@@ -15,8 +15,9 @@ export interface Dict {
   engineSwitch: string;
   searchBtn: string;
   hotSearch: string;
+  search: { history: string; clear: string; urlHint: string; bangHint: string };
   cats: Record<string, string>;
-  nav: { home: string; storm: string; binary: string; morse: string; clock: string };
+  nav: { home: string; storm: string; binary: string; morse: string; clock: string; qr: string; json: string };
   footer: { tip: string; slash: string; cmd: string; switch: string; copyright: string };
   bg: { title: string; presets: string; custom: string; opacity: string; upload: string; reset: string; chooseFile: string; starfield: string; aurora: string; deepsea: string; sunset: string; neon: string; cyber: string; minimal: string; sakura: string; warm: string; matrix: string; library: string; apply: string; downloading: string };
   fav: { title: string; empty: string; addHint: string };
@@ -24,6 +25,7 @@ export interface Dict {
   user: { menu: string; logout: string; login: string; guest: string; unlockPrivate: string; lockPrivate: string; guestHint: string };
   cmd: { title: string; placeholder: string; groups: { sites: string; cats: string; actions: string; tools: string }; empty: string; hint: string };
   sync: { title: string; export: string; import: string; copy: string; paste: string; reset: string; ok: string; fail: string; copied: string; confirmReset: string; share: string; shareHint: string; copyLink: string; importCode: string; tooLong: string; scanHint: string };
+  gist: { title: string; hint: string; token: string; tokenPh: string; save: string; clear: string; upload: string; download: string; upOk: string; downOk: string; fail: string; noToken: string; idPh: string; open: string };
   custom: { title: string; addCat: string; addSite: string; edit: string; del: string; catName: string; catIcon: string; catPrivate: string; siteName: string; siteUrl: string; siteDesc: string; siteCat: string; save: string; cancel: string; confirmDel: string };
   layout: { title: string; comfy: string; compact: string; large: string; switch: string; dragHint: string };
   theme: { title: string; dark: string; light: string; system: string; accent: string; cyan: string; purple: string; pink: string; orange: string; green: string; mono: string };
@@ -49,7 +51,7 @@ export interface Dict {
   // === 首屏引导 ===
   intro: { title: string; tagline: string; step1: string; step2: string; step3: string; dismiss: string };
   // === 内容中心 ===
-  content: { flash: string; hot: string; hotFrom: string; quote: string; picks: string; retry: string; retryHint: string; empty: string };
+  content: { flash: string; hot: string; hotFrom: string; quote: string; picks: string; retry: string; retryHint: string; empty: string; fallback: string; fallbackHint: string };
   // === 360 左侧栏 ===
   categories: { title: string; all: string; list: Record<string, string> };
   favorites: { title: string; empty: string };
@@ -71,6 +73,7 @@ export const dict: Record<Locale, Dict> = {
     engineSwitch: "切换搜索引擎",
     searchBtn: "搜索",
     hotSearch: "热门搜索",
+    search: { history: "最近搜索", clear: "清空", urlHint: "网址，回车直达", bangHint: "指定引擎" },
     cats: {
       all: "全部",
       dev: "开发工具",
@@ -82,7 +85,7 @@ export const dict: Record<Locale, Dict> = {
       custom: "自定义",
       private: "隐私分类",
     },
-    nav: { home: "首页", storm: "雷暴", binary: "进制", morse: "摩斯", clock: "罗盘" },
+    nav: { home: "首页", storm: "雷暴", binary: "进制", morse: "摩斯", clock: "罗盘", qr: "二维码", json: "JSON" },
     footer: { tip: "键盘快捷键", slash: "聚焦搜索", cmd: "命令面板", switch: "切换引擎", copyright: "本站收藏的精选网址导航" },
     bg: { title: "背景设置", presets: "预设渐变", custom: "自定义图片", opacity: "透明度", upload: "上传图片", reset: "重置背景", chooseFile: "选择一张图片",
       starfield: "星空", aurora: "极光", deepsea: "深海", sunset: "日落", neon: "霓虹", cyber: "赛博", minimal: "极简", sakura: "樱花", warm: "暖阳", matrix: "矩阵",
@@ -92,6 +95,7 @@ export const dict: Record<Locale, Dict> = {
     user: { menu: "用户", logout: "退出管理员", login: "管理员登录", guest: "访客模式", unlockPrivate: "解锁隐私分类", lockPrivate: "锁定隐私分类", guestHint: "访客看不到隐私分类和管理操作" },
     cmd: { title: "命令面板", placeholder: "输入命令、站点名、分类…  Esc 关闭", groups: { sites: "站点", cats: "分类", actions: "操作", tools: "工具页" }, empty: "没有匹配项，换个关键词试试？", hint: "上下移动  Enter 选择" },
     sync: { title: "数据同步", export: "导出 JSON", import: "导入 JSON", copy: "复制到剪贴板", paste: "粘贴 JSON 导入", reset: "清空所有数据", ok: "导入成功", fail: "导入失败，格式不对", copied: "已复制", confirmReset: "确定要清空所有收藏、统计、自定义数据吗？无法撤销。", share: "生成同步二维码", shareHint: "手机扫码即可带走收藏、自定义站点与布局。二维码在本机生成，不经过任何服务器，也不会上传数据。", copyLink: "复制同步链接", importCode: "导入同步码 / 链接", tooLong: "数据较多，二维码可能扫不出来，建议用复制的链接", scanHint: "用手机相机或浏览器扫码打开，确认后即可导入" },
+    gist: { title: "云同步（GitHub Gist）", hint: "用你自己的 GitHub 令牌，把数据存进你名下的私密 Gist，换设备粘贴同一个 Gist ID 即可恢复。令牌只留在本机，不会上传。", token: "GitHub Token", tokenPh: "粘贴 gist 权限的 Personal Access Token", save: "保存令牌", clear: "清除令牌", upload: "上传到云端", download: "从云端恢复", upOk: "已上传到你的私密 Gist", downOk: "已从云端恢复", fail: "操作失败", noToken: "请先填写并保存 GitHub Token", idPh: "Gist ID（可留空，自动使用本机上次记录）", open: "打开 Gist" },
     custom: { title: "自定义管理", addCat: "新增分类", addSite: "新增站点", edit: "编辑", del: "删除", catName: "分类名称", catIcon: "图标 (lucide name)", catPrivate: "设为隐私分类", siteName: "站点名称", siteUrl: "网址", siteDesc: "一句话介绍", siteCat: "所属分类", save: "保存", cancel: "取消", confirmDel: "确定删除吗？" },
     layout: { title: "布局", comfy: "宽松", compact: "密集", large: "大卡片", switch: "切换布局", dragHint: "按住拖动可排序" },
     theme: { title: "主题配色", dark: "深色", light: "浅色", system: "跟随系统", accent: "强调色", cyan: "赛博青", purple: "霓虹紫", pink: "樱花粉", orange: "暖阳橙", green: "森林绿", mono: "极简灰" },
@@ -128,6 +132,8 @@ export const dict: Record<Locale, Dict> = {
       retry: "重试",
       retryHint: "内容暂时获取失败，可稍后重试",
       empty: "暂无内容",
+      fallback: "离线精选",
+      fallbackHint: "实时接口暂时不可用，先看看这些常青内容",
     },
     categories: { title: "网站分类", all: "全部网站", list: { all: "全部", dev: "开发", design: "设计", study: "学习", life: "生活", ai: "AI", tools: "工具", social: "社交", video: "影音", office: "办公", weather: "气象", search: "搜索" } },
     favorites: { title: "我的收藏", empty: "还没有收藏，点站点卡片 ⭐ 收藏" },
@@ -147,8 +153,9 @@ export const dict: Record<Locale, Dict> = {
     engineSwitch: "Switch engine",
     searchBtn: "Search",
     hotSearch: "Hot",
+    search: { history: "Recent", clear: "Clear", urlHint: "URL — Enter to open", bangHint: "Engine" },
     cats: { all: "All", dev: "Dev", design: "Design", study: "Study", life: "Life", ai: "AI", tools: "Tools", custom: "Custom", private: "Private" },
-    nav: { home: "Home", storm: "Storm", binary: "Binary", morse: "Morse", clock: "Compass" },
+    nav: { home: "Home", storm: "Storm", binary: "Binary", morse: "Morse", clock: "Compass", qr: "QR", json: "JSON" },
     footer: { tip: "Keyboard", slash: "Focus", cmd: "Command palette", switch: "Switch engine", copyright: "A curated navigator for your daily workflow" },
     bg: { title: "Background", presets: "Presets", custom: "Custom image", opacity: "Opacity", upload: "Upload", reset: "Reset", chooseFile: "Pick an image",
       starfield: "Starfield", aurora: "Aurora", deepsea: "Deep Sea", sunset: "Sunset", neon: "Neon", cyber: "Cyber", minimal: "Minimal", sakura: "Sakura", warm: "Warm", matrix: "Matrix",
@@ -158,6 +165,7 @@ export const dict: Record<Locale, Dict> = {
     user: { menu: "User", logout: "Sign out", login: "Admin login", guest: "Guest mode", unlockPrivate: "Unlock private", lockPrivate: "Lock private", guestHint: "Guests can't see private categories" },
     cmd: { title: "Command Palette", placeholder: "Search sites, categories, actions…  Esc to close", groups: { sites: "Sites", cats: "Categories", actions: "Actions", tools: "Tool Pages" }, empty: "No matches. Try another keyword.", hint: "↑↓ navigate  Enter select" },
     sync: { title: "Data Sync", export: "Export JSON", import: "Import JSON", copy: "Copy", paste: "Paste JSON", reset: "Wipe all", ok: "Imported", fail: "Import failed: invalid JSON", copied: "Copied", confirmReset: "Clear ALL favorites, stats, custom data? This cannot be undone.", share: "Create sync QR", shareHint: "Scan to carry favorites, custom sites and layout to your phone. The QR is generated locally — no server, no upload.", copyLink: "Copy sync link", importCode: "Import sync code / link", tooLong: "Payload is large; the QR may not scan. Use the copied link instead.", scanHint: "Scan with your phone camera or browser, then confirm to import" },
+    gist: { title: "Cloud Sync (GitHub Gist)", hint: "Use your own GitHub token to store data in a private Gist under your account. Paste the same Gist ID on another device to restore. The token stays on this device and is never uploaded.", token: "GitHub Token", tokenPh: "Paste a Personal Access Token with gist scope", save: "Save token", clear: "Clear token", upload: "Upload to cloud", download: "Restore from cloud", upOk: "Uploaded to your private Gist", downOk: "Restored from cloud", fail: "Operation failed", noToken: "Save a GitHub Token first", idPh: "Gist ID (leave empty to use the last one on this device)", open: "Open Gist" },
     custom: { title: "Customize", addCat: "New category", addSite: "New site", edit: "Edit", del: "Delete", catName: "Category name", catIcon: "Icon (lucide name)", catPrivate: "Mark as private", siteName: "Site name", siteUrl: "URL", siteDesc: "Short description", siteCat: "Category", save: "Save", cancel: "Cancel", confirmDel: "Delete?" },
     layout: { title: "Layout", comfy: "Comfy", compact: "Compact", large: "Large", switch: "Toggle layout", dragHint: "Drag to reorder" },
     theme: { title: "Theme", dark: "Dark", light: "Light", system: "System", accent: "Accent", cyan: "Cyber Cyan", purple: "Neon Purple", pink: "Sakura", orange: "Warm", green: "Forest", mono: "Mono" },
@@ -194,6 +202,8 @@ export const dict: Record<Locale, Dict> = {
       retry: "Retry",
       retryHint: "Content temporarily unavailable. Try again later.",
       empty: "No content yet",
+      fallback: "Offline picks",
+      fallbackHint: "Live feeds are unavailable — here are some evergreen reads",
     },
     categories: { title: "Categories", all: "All Sites", list: { all: "All", dev: "Dev", design: "Design", study: "Study", life: "Life", ai: "AI", tools: "Tools", social: "Social", video: "Video", office: "Office", weather: "Weather", search: "Search" } },
     favorites: { title: "Favorites", empty: "No favorites yet. Tap ⭐ on a site card." },

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useUserStore, type CustomCategory, type CustomSite } from "@/stores/useUserStore";
 import { CATEGORIES } from "@/config/sites";
 import { useI18n } from "@/i18n";

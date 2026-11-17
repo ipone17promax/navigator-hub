@@ -1,5 +1,5 @@
 import { useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 
 /** 简化的农历日期映射（演示用，实际可用 lunar-javascript 库） */
 const LUNAR_DAYS = [

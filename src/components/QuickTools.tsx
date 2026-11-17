@@ -1,5 +1,7 @@
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
+import { Link } from "react-router-dom";
 import { useI18n } from "@/i18n";
+import type { LucideIcon } from "lucide-react";
 
 interface ToolItem {
   nameKey:
@@ -27,10 +29,20 @@ const TOOLS: ToolItem[] = [
   { nameKey: "cloudDisk" as const,    icon: "HardDrive",   color: "#EC4899", url: "https://pan.baidu.com/" },
 ];
 
+/** 站内自研工具：路由页，不跳外链 */
+const BUILTIN: { to: string; icon: LucideIcon; color: string; zh: string; en: string }[] = [
+  { to: "/qr-code",         icon: Icons.QrCode,         color: "#22d3ee", zh: "二维码工坊", en: "QR Workshop" },
+  { to: "/json-formatter",  icon: Icons.Braces,         color: "#fbbf24", zh: "JSON 格式化", en: "JSON Formatter" },
+  { to: "/morse-code",      icon: Icons.Radio,          color: "#f472b6", zh: "摩斯电码机", en: "Morse Code" },
+  { to: "/binary-parser",   icon: Icons.Binary,         color: "#a78bfa", zh: "二进制解析", en: "Binary Parser" },
+  { to: "/compass-clock",   icon: Icons.Compass,        color: "#fb923c", zh: "罗盘时钟",   en: "Compass Clock" },
+  { to: "/storm-tracker",   icon: Icons.CloudLightning, color: "#38bdf8", zh: "风暴追踪",   en: "Storm Tracker" },
+];
+
 export default function QuickTools() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   return (
-    <div className="rounded-2xl border border-stroke bg-bg-elevate/60 p-4 backdrop-blur-xl transition-all duration-300 hover:border-stroke-hover">
+    <div className="w-full rounded-2xl border border-stroke bg-bg-elevate/60 p-4 backdrop-blur-xl transition-all duration-300 hover:border-stroke-hover">
       <div className="mb-3 flex items-center gap-2">
         <Icons.Wrench size={16} className="text-cyan-400" />
         <span className="text-sm font-semibold text-ink">{t.quickTools}</span>
@@ -51,6 +63,23 @@ export default function QuickTools() {
             </a>
           );
         })}
+      </div>
+
+      {/* 站内自研工具：全部纯前端、离线可用 */}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-stroke/60 pt-2.5">
+        <span className="text-[11px] font-medium text-ink-subtle">
+          {locale === "zh" ? "自研工具" : "Built-in"}
+        </span>
+        {BUILTIN.map((b) => (
+          <Link
+            key={b.to}
+            to={b.to}
+            className="group inline-flex items-center gap-1 text-[11px] text-ink-muted transition-colors hover:text-ink"
+          >
+            <b.icon size={12} style={{ color: b.color }} className="transition-transform duration-200 group-hover:scale-110" />
+            {locale === "zh" ? b.zh : b.en}
+          </Link>
+        ))}
       </div>
     </div>
   );

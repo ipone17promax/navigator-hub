@@ -216,7 +216,7 @@ export default function MorseCodePage() {
               value={input}
               onChange={(e) => handleInputChange(e.target.value)}
               placeholder={mode === "encode" ? "如 HELLO WORLD" : "如 .... . .-.. .-.. --- / .-- --- .-. .-.. -.."}
-              className="h-36 w-full resize-none rounded-xl border border-stroke bg-black/40 px-4 py-3 font-mono text-sm text-ink outline-none focus:border-brand/50"
+              className="h-36 w-full resize-none rounded-xl border border-stroke bg-bg-elevate px-4 py-3 font-mono text-sm text-ink outline-none focus:border-brand/50"
               spellCheck={false}
             />
           </div>
@@ -239,7 +239,7 @@ export default function MorseCodePage() {
               value={output}
               readOnly
               placeholder="转换结果..."
-              className="h-36 w-full resize-none rounded-xl border border-stroke bg-black/40 px-4 py-3 font-mono text-sm text-ink outline-none"
+              className="h-36 w-full resize-none rounded-xl border border-stroke bg-bg-elevate px-4 py-3 font-mono text-sm text-ink outline-none"
               spellCheck={false}
             />
           </div>

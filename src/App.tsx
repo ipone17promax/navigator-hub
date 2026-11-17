@@ -11,6 +11,8 @@ const StormTrackerPage = lazy(() => import("@/pages/StormTrackerPage"));
 const BinaryParserPage = lazy(() => import("@/pages/BinaryParserPage"));
 const MorseCodePage = lazy(() => import("@/pages/MorseCodePage"));
 const CompassClockPage = lazy(() => import("@/pages/CompassClockPage"));
+const QrCodePage = lazy(() => import("@/pages/QrCodePage"));
+const JsonFormatterPage = lazy(() => import("@/pages/JsonFormatterPage"));
 
 function PageLoader() {
   const { t } = useI18n();
@@ -86,6 +88,8 @@ export default function App() {
           <Route path="/binary-parser" element={<BinaryParserPage />} />
           <Route path="/morse-code" element={<MorseCodePage />} />
           <Route path="/compass-clock" element={<CompassClockPage />} />
+          <Route path="/qr-code" element={<QrCodePage />} />
+          <Route path="/json-formatter" element={<JsonFormatterPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>

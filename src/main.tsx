@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { I18nProvider } from "./i18n";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { logger } from "./lib/logger";
 
 logger.info("Bootstrap", "应用启动", { ua: navigator.userAgent });
@@ -48,8 +49,10 @@ if ("serviceWorker" in navigator && location.protocol === "https:" || location.h
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <I18nProvider>
-      <App />
-    </I18nProvider>
+    <ErrorBoundary>
+      <I18nProvider>
+        <App />
+      </I18nProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 );

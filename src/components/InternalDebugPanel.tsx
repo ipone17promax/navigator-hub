@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { logger, type LogEntry, type LogLevel } from "@/lib/logger";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { cn } from "@/lib/utils";

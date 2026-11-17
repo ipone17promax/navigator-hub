@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { isLoginSuccess } from "@/lib/authClient";
 

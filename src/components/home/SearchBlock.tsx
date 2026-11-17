@@ -1,4 +1,4 @@
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import GreetingClock from "@/components/GreetingClock";
 import SearchHero from "@/components/SearchHero";
 import SearchTabs from "@/components/SearchTabs";

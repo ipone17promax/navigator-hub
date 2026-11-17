@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import * as Icons from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
 import type { LucideIcon } from "lucide-react";
 
 interface HighlightItem {

@@ -6,7 +6,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 const base = process.env.GITHUB_PAGES === "true" ? "/navigator-hub/" : "/";
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base,
   build: {
     sourcemap: 'hidden',
@@ -16,6 +16,8 @@ export default defineConfig({
         manualChunks: {
           // React 核心 → 独立 chunk（极少变动，完美缓存命中）
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          // 图标库 → 独立 chunk（体积大且随版本稳定，单独缓存）
+          'vendor-icons': ['lucide-react'],
           // 第三方库 → 独立 chunk
           'vendor-misc': ['zustand', 'clsx'],
         },
@@ -53,12 +55,11 @@ export default defineConfig({
   },
   plugins: [
     react({
-      babel: {
-        plugins: [
-          'react-dev-locator',
-        ],
-      },
+      // 仅在 dev 下启用源码定位插件，生产构建不注入任何调试属性（减小体积、提速）
+      babel: command === 'serve'
+        ? { plugins: ['react-dev-locator'] }
+        : undefined,
     }),
     tsconfigPaths()
   ],
-})
+}))

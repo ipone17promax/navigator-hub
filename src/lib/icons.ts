@@ -1,7 +1,8 @@
-import * as Icons from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import * as Icons from "@/lib/iconRegistry";
+import type { LucideIcon } from "@/lib/iconRegistry";
 
-const ICONS = Icons as unknown as Record<string, LucideIcon>;
+/** 把图标注册表当作字符串索引表使用（名称来自 sites 配置，构建期已校验存在性） */
+const ICONS = Icons.ICONS as unknown as Record<string, LucideIcon>;
 
 /**
  * 统一图标解析（所有组件必须走这个入口）

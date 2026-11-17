@@ -134,7 +134,7 @@ export default function BinaryParserPage() {
               value={input}
               onChange={(e) => handleInputChange(e.target.value)}
               placeholder={mode === "encode" ? "在此输入文字内容..." : "在此输入二进制数据（如 01000001 01000010）..."}
-              className="h-48 w-full resize-none rounded-xl border border-stroke bg-black/40 px-4 py-3 font-mono text-sm text-ink outline-none transition-all focus:border-brand/50 focus:shadow-glow"
+              className="h-48 w-full resize-none rounded-xl border border-stroke bg-bg-elevate px-4 py-3 font-mono text-sm text-ink outline-none transition-all focus:border-brand/50 focus:shadow-glow"
               spellCheck={false}
             />
           </div>
@@ -165,7 +165,7 @@ export default function BinaryParserPage() {
               value={output}
               readOnly
               placeholder="转换结果将显示在这里..."
-              className="h-48 w-full resize-none rounded-xl border border-stroke bg-black/40 px-4 py-3 font-mono text-sm text-ink outline-none"
+              className="h-48 w-full resize-none rounded-xl border border-stroke bg-bg-elevate px-4 py-3 font-mono text-sm text-ink outline-none"
               spellCheck={false}
             />
           </div>

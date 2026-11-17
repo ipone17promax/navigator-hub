@@ -13,8 +13,26 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Space Grotesk", "system-ui", "sans-serif"],
-        sans: ["Inter", "system-ui", "sans-serif"],
+        // 全部走系统字体：国内外都不发额外请求，首屏无字体等待
+        display: [
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei",
+          "Noto Sans SC",
+          "sans-serif",
+        ],
+        sans: [
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "PingFang SC",
+          "Microsoft YaHei",
+          "Noto Sans SC",
+          "Roboto",
+          "sans-serif",
+        ],
       },
       colors: {
         // 主题色：通过 CSS 变量注入，支持三套主题切换
