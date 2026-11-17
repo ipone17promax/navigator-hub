@@ -93,6 +93,8 @@ export default function ContentCenter() {
             </button>
           </div>
 
+          {/* 固定内容区高度：骨架 → 真实数据时页面下方不再整体上下位移 */}
+          <div className="min-h-[18rem]">
           {loading && flash.length === 0 ? (
             <div className="space-y-2">
               {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -131,6 +133,7 @@ export default function ContentCenter() {
               ))}
             </ol>
           )}
+          </div>
         </div>
 
         {/* 微博热搜 */}
@@ -140,6 +143,7 @@ export default function ContentCenter() {
             <span className="text-[13px] font-semibold text-ink/80">{t.content.hot}</span>
             <span className="ml-auto text-[10px] text-ink-subtle">{t.content.hotFrom}</span>
           </div>
+          <div className="min-h-[18rem]">
           {loading && hot.length === 0 ? (
             <div className="space-y-2">
               {[0, 1, 2, 3, 4, 5, 6].map((i) => (
@@ -193,6 +197,7 @@ export default function ContentCenter() {
               )}
             </ol>
           )}
+          </div>
         </div>
 
         {/* 每日一句 + 今日推荐 */}

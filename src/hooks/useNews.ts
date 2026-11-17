@@ -74,11 +74,10 @@ async function fetchItems(): Promise<NewsItem[]> {
 }
 
 export function useNews(autoScroll = true) {
-  const [items, setItems] = useState<NewsItem[]>(FALLBACKS);
-  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [paused, setPaused] = useState(false);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
-  const timerRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -97,23 +96,45 @@ export function useNews(autoScroll = true) {
     void load();
   }, [load]);
 
-  // 自动滚动
+  /**
+   * 自动滚动：requestAnimationFrame 逐帧平移 + 列表渲染两份实现无缝回卷
+   *   - 旧实现用 setInterval 每 80ms 改 scrollTop，滚到底再瞬间归零，肉眼就是「一直跳」
+   *   - 现在的做法：累计亚像素位移，越过半程高度时减去半程，视觉上永远连续
+   *   - 鼠标悬停 / 键盘聚焦 / 切到后台标签页 / 系统开启「减少动态效果」时自动停止
+   */
   useEffect(() => {
     if (!autoScroll) return;
     const el = scrollerRef.current;
     if (!el) return;
-    const step = () => {
-      if (paused) return;
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
-        el.scrollTop = 0;
-      } else {
-        el.scrollTop += 1;
-      }
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    let raf = 0;
+    let acc = 0;
+    let last = performance.now();
+    const SPEED = 14; // px/s：慢速平移，够看清标题又不晃眼
+
+    const tick = (now: number) => {
+      raf = requestAnimationFrame(tick);
+      const dt = Math.min(now - last, 120) / 1000;
+      last = now;
+      if (paused || document.hidden) return;
+
+      const half = el.scrollHeight / 2;
+      // 内容不足一屏（未渲染双份）时不做滚动，避免无意义抖动
+      if (half <= el.clientHeight + 1) return;
+
+      acc += SPEED * dt;
+      if (acc < 1) return;
+      const move = Math.floor(acc);
+      acc -= move;
+
+      let next = el.scrollTop + move;
+      if (next >= half) next -= half;
+      el.scrollTop = next;
     };
-    timerRef.current = window.setInterval(step, 80);
-    return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
-    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
   }, [autoScroll, paused]);
 
   return { items, loading, paused, setPaused, load, scrollerRef };
