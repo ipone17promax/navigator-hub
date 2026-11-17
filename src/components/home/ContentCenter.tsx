@@ -172,7 +172,7 @@ export default function ContentCenter() {
                   </a>
                 </li>
               ))}
-              {hot.length === 0 && err && (
+              {hot.length === 0 && (
                 <>
                   {EDITORIAL_LINKS.map((item, i) => (
                     <li key={item.title}>
