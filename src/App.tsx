@@ -2,7 +2,9 @@
 import { HashRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import HomePage from "@/pages/HomePage";
 import { logger } from "@/lib/logger";
+import { decodeSync } from "@/lib/syncCode";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useUserStore } from "@/stores/useUserStore";
 import { useI18n } from "@/i18n";
 
 const StormTrackerPage = lazy(() => import("@/pages/StormTrackerPage"));
@@ -50,9 +52,29 @@ function NotFound() {
 
 export default function App() {
   const initAuth = useAuthStore((s) => s.init);
+  const { locale } = useI18n();
   useEffect(() => {
     void initAuth();
   }, [initAuth]);
+
+  // 跨端同步：链接里带 ?sync= 时提示导入
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("sync");
+    if (!code) return;
+    const zh = locale === "zh";
+    const clean = () => history.replaceState(null, "", window.location.pathname + window.location.hash);
+    if (!window.confirm(zh ? "检测到跨端同步数据，是否导入到本机？" : "Sync data found. Import to this device?")) {
+      clean();
+      return;
+    }
+    decodeSync(code)
+      .then((data) => {
+        const ok = useUserStore.getState().importJSON(JSON.stringify(data));
+        window.alert(ok ? (zh ? "同步完成，数据已导入" : "Sync complete") : (zh ? "同步失败，同步码可能已损坏" : "Sync failed: invalid code"));
+      })
+      .catch(() => window.alert(zh ? "同步失败，同步码可能已损坏" : "Sync failed: invalid code"))
+      .finally(clean);
+  }, [locale]);
 
   return (
     <Router>
