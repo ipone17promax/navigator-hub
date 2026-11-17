@@ -219,6 +219,18 @@ aside[role="dialog"] {
   background-color: var(--bg-base);
 }
 
+/* 精选轮播交叉淡入：新图轻微放大淡入，配合底层旧图形成柔和过渡 */
+@keyframes coverFadeIn {
+  from { opacity: 0; transform: scale(1.035); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.cover-fade {
+  animation: coverFadeIn 0.72s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cover-fade { animation: none; }
+}
+
 /* ============================================================
    赛博背景层：多层径向渐变光晕 + 噪点 + 扫描线
    ============================================================ */

@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import * as Icons from "@/lib/iconRegistry";
 import { useUserStore } from "@/stores/useUserStore";
 import { logger } from "@/lib/logger";
 import { useI18n } from "@/i18n";
 import { HealthBadge } from "./HealthAndFreq";
+import { LOCAL_ICON_IDS } from "@/config/localIcons";
 import type { LucideIcon } from "lucide-react";
 
 interface Props {
@@ -25,18 +27,29 @@ export default function SiteCard({ id, name, url, desc, iconName = "Globe", cate
   const toggleFav = useUserStore((s) => s.toggleFavorite);
   const favorites = useUserStore((s) => s.favorites);
   const recordVisit = useUserStore((s) => s.recordVisit);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [iconSrc, setIconSrc] = useState<string | null>(null);
   const [iconError, setIconError] = useState<number>(0);
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const longPressTimer = useRef<number | null>(null);
+  const longPressFired = useRef(false);
+  const pressOrigin = useRef({ x: 0, y: 0 });
   const isFav = favorites.includes(id);
   const I = icon(iconName);
+  const zh = locale === "zh";
 
-  // 图标多级回退：本地public → 国内源优先（iowen/cccyun/vvhan/infinity）→ 直接favicon.ico → 国外源兜底
+  // 图标多级回退：本地图标（需在 localIcons 登记）→ 国内源优先 → 站点 favicon.ico → 国外源兜底
   useEffect(() => {
     let cancelled = false;
+    const hasLocalIcon = LOCAL_ICON_IDS.includes(id);
     const candidates: (() => string | null)[] = [
-      () => `/icons/${id}.svg`,
-      () => `/icons/${id}.png`,
+      ...(hasLocalIcon
+        ? [
+            () => `/icons/${id}.svg`,
+            () => `/icons/${id}.png`,
+          ]
+        : []),
       () => {
         try {
           const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
@@ -118,11 +131,103 @@ export default function SiteCard({ id, name, url, desc, iconName = "Globe", cate
     window.open(u, "_blank", "noopener,noreferrer");
   };
 
+  const clearPressTimer = () => {
+    if (longPressTimer.current) {
+      window.clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  // 触屏/鼠标长按（520ms）呼出快捷菜单；移动超过 10px 视为滚动，取消长按
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    longPressFired.current = false;
+    pressOrigin.current = { x: e.clientX, y: e.clientY };
+    clearPressTimer();
+    longPressTimer.current = window.setTimeout(() => {
+      longPressFired.current = true;
+      navigator.vibrate?.(12);
+      const w = 172;
+      const h = 132;
+      setMenu({
+        x: Math.min(Math.max(8, e.clientX), window.innerWidth - w - 8),
+        y: Math.min(Math.max(8, e.clientY + 8), window.innerHeight - h - 8),
+      });
+    }, 520);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!longPressTimer.current) return;
+    const dx = e.clientX - pressOrigin.current.x;
+    const dy = e.clientY - pressOrigin.current.y;
+    if (Math.hypot(dx, dy) > 10) clearPressTimer();
+  };
+
+  const guardedClick = () => {
+    // 长按已呼出菜单时，不要顺带打开站点
+    if (longPressFired.current) {
+      longPressFired.current = false;
+      return;
+    }
+    click();
+  };
+
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => {
+      // 菜单关闭后恢复普通点击，避免下一次单击被误吞
+      longPressFired.current = false;
+      setMenu(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("scroll", close, { passive: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("scroll", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
+  const menuItems = menu ? [
+    {
+      key: "open",
+      icon: Icons.ExternalLink,
+      label: zh ? "打开站点" : "Open site",
+      run: () => { click(); setMenu(null); },
+    },
+    {
+      key: "fav",
+      icon: Icons.Star,
+      label: isFav ? (zh ? "取消收藏" : "Unfavorite") : (zh ? "加入收藏" : "Add to favorites"),
+      run: () => { toggleFav(id); setMenu(null); },
+    },
+    {
+      key: "copy",
+      icon: Icons.Copy,
+      label: copied ? (zh ? "已复制" : "Copied") : (zh ? "复制链接" : "Copy link"),
+      run: () => {
+        navigator.clipboard?.writeText(url.startsWith("http") ? url : "https://" + url);
+        setCopied(true);
+        window.setTimeout(() => { setCopied(false); setMenu(null); }, 700);
+      },
+    },
+  ] : [];
+
   return (
     <div
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-stroke bg-bg-elevate/60 p-4 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-stroke-hover hover:shadow-glow animate-fade-in-up cursor-pointer"
-      onClick={click}
+      onClick={guardedClick}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={clearPressTimer}
+      onPointerCancel={clearPressTimer}
+      onPointerLeave={clearPressTimer}
+      onContextMenu={(e) => e.preventDefault()}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); click(); } }}
       role="link"
+      tabIndex={0}
     >
       {index && index <= 9 && (
         <div className="absolute left-3 top-3 font-mono text-[10px] font-bold text-white/25 group-hover:text-brand-primary/80">
@@ -172,6 +277,36 @@ export default function SiteCard({ id, name, url, desc, iconName = "Globe", cate
         </span>
         {isFav && <Icons.Star size={12} className="text-amber-400" fill="currentColor" />}
       </div>
+
+      {/* 长按快捷菜单：portal 到 body，避免被卡片 overflow-hidden 裁掉 */}
+      {menu && createPortal(
+        <div
+          className="fixed inset-0 z-[130]"
+          onPointerDown={() => setMenu(null)}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div
+            className="absolute w-[172px] overflow-hidden rounded-xl border border-stroke bg-bg-base/95 p-1 shadow-card backdrop-blur-xl animate-fade-in"
+            style={{ left: menu.x, top: menu.y }}
+            onPointerDown={(e) => e.stopPropagation()}
+            role="menu"
+          >
+            <div className="truncate px-2.5 py-1.5 text-[10px] font-semibold text-ink-subtle">{name}</div>
+            {menuItems.map((it) => (
+              <button
+                key={it.key}
+                role="menuitem"
+                onClick={it.run}
+                className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+              >
+                <it.icon size={13} className="text-brand-primary" />
+                {it.label}
+              </button>
+            ))}
+          </div>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

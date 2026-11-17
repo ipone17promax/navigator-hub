@@ -22,6 +22,8 @@ function applyTheme(mode: ThemeMode) {
   const isDark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
   root.classList.toggle("dark", isDark);
   root.setAttribute("data-theme-mode", isDark ? "dark" : "light");
+  // 与 index.html 启动脚本对齐：同步画布底色，避免浅/深切换时 html 层残留旧色
+  root.style.backgroundColor = isDark ? "#0A0A1A" : "#eef2f9";
 }
 
 function applyAccent(color: string) {

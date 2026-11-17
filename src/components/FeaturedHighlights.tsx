@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as Icons from "@/lib/iconRegistry";
 import type { LucideIcon } from "lucide-react";
 
@@ -121,14 +121,29 @@ function FallbackTile({ accent, icon }: { accent: string; icon: LucideIcon }) {
 export default function FeaturedHighlights() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [isAutoPlay, setIsAutoPlay] = useState(true);
+  // 交叉淡入：保留上一张作为底层，新图淡入覆盖后再卸载
+  const [prevIdx, setPrevIdx] = useState<number | null>(null);
+  const lastIdx = useRef(0);
 
   useEffect(() => {
     if (!isAutoPlay) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
     const timer = setInterval(() => {
+      // 切到后台标签页时不推进，回来仍是当前那张，避免「一回来就跳走」
+      if (document.hidden) return;
       setActiveIdx((prev) => (prev + 1) % HIGHLIGHTS.length);
     }, 4000);
     return () => clearInterval(timer);
   }, [isAutoPlay]);
+
+  useEffect(() => {
+    if (lastIdx.current === activeIdx) return;
+    setPrevIdx(lastIdx.current);
+    lastIdx.current = activeIdx;
+    const id = window.setTimeout(() => setPrevIdx(null), 780);
+    return () => window.clearTimeout(id);
+  }, [activeIdx]);
 
   const activeItem = HIGHLIGHTS[activeIdx];
 
@@ -176,13 +191,23 @@ export default function FeaturedHighlights() {
             style={{ height: "280px" }}
           >
             <FallbackTile accent={activeItem.accent} icon={CATEGORY_ICONS[activeItem.category] ?? Icons.Sparkles} />
+            {/* 上一张留在底层，新图淡入覆盖：不再硬切闪一下 */}
+            {prevIdx !== null && (
+              <img
+                src={HIGHLIGHTS[prevIdx].image}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            )}
             <img
+              key={activeIdx}
               src={activeItem.image}
               alt={activeItem.title}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).style.display = "none";
               }}
-              className="absolute inset-0 h-full w-full bg-cover object-cover transition-all duration-500 group-hover:scale-105"
+              className="cover-fade absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-bg-base via-bg-base/30 to-transparent" />
 

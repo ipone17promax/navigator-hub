@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import * as Icons from "@/lib/iconRegistry";
 import { useI18n } from "@/i18n";
 import CommandPalette from "@/components/CommandPalette";
+import PullToRefresh from "@/components/PullToRefresh";
 import HeaderActions from "@/components/home/HeaderActions";
 import FooterActions from "@/components/home/FooterActions";
 import SearchBlock from "@/components/home/SearchBlock";
@@ -27,7 +28,6 @@ import { SITES, CATEGORIES } from "@/config/sites";
  */
 export default function HomePage() {
   const { t, toggle, toggleTheme, locale } = useI18n();
-  const [loaded, setLoaded] = useState(false);
   const setCat = useAppStore((s) => s.setActiveCategoryId);
   const activeCat = useAppStore((s) => s.activeCategoryId);
   const customSites = useUserStore((s) => s.customSites);
@@ -37,12 +37,6 @@ export default function HomePage() {
   const favOrder = useUserStore((s) => s.favoriteOrder);
   const unlockPriv = useUserStore((s) => s.unlockPrivate);
   const unlocked = useUserStore((s) => s.privateUnlocked);
-
-  useEffect(() => {
-    // 只做一次极短过渡（避免整屏遮罩拖慢首屏 LCP），不做人为等待
-    const t1 = setTimeout(() => setLoaded(true), 120);
-    return () => clearTimeout(t1);
-  }, []);
 
   // 全局快捷键
   useEffect(() => {
@@ -129,26 +123,8 @@ export default function HomePage() {
         <HeaderActions />
       </header>
 
-      {/* 加载屏 */}
-      {!loaded && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-bg-base">
-          <div className="flex flex-col items-center gap-4 animate-fade-in-up">
-            <div className="relative">
-              <div className="absolute -inset-4 rounded-3xl bg-brand-gradient opacity-40 blur-2xl animate-pulse-glow" />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-gradient shadow-glow-lg">
-                <Icons.Share2 size={30} className="text-white" />
-              </div>
-            </div>
-            <p className="text-sm text-ink-muted">{t.loading}</p>
-            <div className="h-1 w-40 overflow-hidden rounded-full bg-white/5">
-              <div className="h-full w-1/3 animate-indeterminate bg-brand-gradient" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 单栏主体：搜索 → 收藏 → 内容 → 信息条 → 底部 */}
-      <div className={`relative mx-auto flex w-full max-w-7xl flex-col transition-opacity duration-500 ${loaded ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+      {/* 单栏主体：搜索 → 收藏 → 内容 → 信息条 → 底部（首屏骨架由 index.html 承担，这里直接出内容） */}
+      <div className="relative mx-auto flex w-full max-w-7xl flex-col">
         <SearchBlock />
         <FavoritesStrip />
         <ContentArea />
@@ -159,6 +135,8 @@ export default function HomePage() {
 
       {/* 全局弹层：命令面板 */}
       <CommandPalette />
+      {/* 移动端下拉刷新 */}
+      <PullToRefresh />
     </div>
   );
 }

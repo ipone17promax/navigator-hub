@@ -9,14 +9,80 @@
     <meta name="description" content="NavigatorHub - 赛博未来主义高级网址导航中心" />
     <title>NavigatorHub · 你的星际导航中心</title>
     <!--
-      字体策略：不再外链 Google Fonts（国内会被阻断且拖慢首屏，实测白屏 1~3s）。
-      改用系统字体栈（见 index.css），零额外请求、零 FOIT。
+      字体策略：不再外链 Google Fonts（国内会被阻断且拖慢首屏）。
+      改为系统字体栈（见 index.css），零额外请求、零 FOIT。
     -->
-    <!-- 首屏关键样式内联：避免 FOUC 闪烁 -->
+    <!--
+      首屏关键样式 + 启动骨架（内联，随 HTML 首字节到达即上屏）
+      - 主题预置脚本在解析阶段就写入 html.dark / data-theme-mode，消除浅色用户的白闪
+      - #boot-shell 是真实 DOM 骨架，React 挂载时自动被替换，因此 LCP 不再等 JS
+    -->
     <style>
       html,body{margin:0;padding:0;background:var(--bg-base,#0A0A1A);color:var(--ink-default,#fff);}
       #root{min-height:100vh;}
+      #boot-shell{
+        position:fixed;inset:0;z-index:30;overflow:hidden;
+        background:var(--bg-base,#0A0A1A);
+        transition:opacity .24s ease;
+        min-height:100vh;box-sizing:border-box;padding:14px 18px 28px;
+        font-family:system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+        --bs-card:rgba(255,255,255,.055);
+        --bs-line:rgba(255,255,255,.13);
+        --bs-soft:rgba(255,255,255,.07);
+      }
+      html[data-theme-mode="light"] #boot-shell{
+        --bs-card:rgba(255,255,255,.75);
+        --bs-line:rgba(15,23,42,.12);
+        --bs-soft:rgba(15,23,42,.06);
+      }
+      @keyframes bsIn{from{opacity:0}to{opacity:1}}
+      @keyframes bsPulse{0%,100%{opacity:.55}50%{opacity:1}}
+      .bs-row{display:flex;align-items:center;gap:10px;max-width:1280px;margin:0 auto}
+      .bs-logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--brand-primary,#22d3ee),var(--brand-secondary,#6366f1));flex:none}
+      .bs-bar{height:10px;border-radius:6px;background:var(--bs-line);animation:bsPulse 1.6s ease-in-out infinite}
+      .bs-pill{height:26px;border-radius:9px;background:var(--bs-soft);flex:none}
+      .bs-grow{flex:1}
+      .bs-hero{max-width:860px;margin:44px auto 0;display:flex;flex-direction:column;align-items:center;gap:14px}
+      .bs-clock{width:240px;height:52px;border-radius:14px;background:var(--bs-line);animation:bsPulse 1.6s ease-in-out infinite}
+      .bs-search{
+        width:100%;height:58px;border-radius:16px;border:1px solid var(--bs-line);
+        background:var(--bs-card);display:flex;align-items:center;gap:12px;padding:0 14px
+      }
+      .bs-dot{width:20px;height:20px;border-radius:50%;background:var(--bs-line);flex:none}
+      .bs-btn{width:86px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--brand-primary,#22d3ee),var(--brand-secondary,#6366f1));flex:none;opacity:.9}
+      .bs-grid{max-width:1280px;margin:34px auto 0;display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+      .bs-card{height:96px;border-radius:16px;background:var(--bs-card);border:1px solid var(--bs-line)}
+      @media(min-width:640px){.bs-grid{grid-template-columns:repeat(3,1fr)}}
+      @media(min-width:1024px){.bs-grid{grid-template-columns:repeat(4,1fr)}}
+      @media(prefers-reduced-motion:reduce){.bs-bar,.bs-clock{animation:none}}
+      #boot-hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);font:11px/1.4 system-ui,sans-serif;color:var(--ink-subtle,#8b96ab);opacity:.75}
     </style>
+    <script>
+      // 解析阶段预置主题与强调色，避免浅色用户先看到深色再闪成浅色
+      (function () {
+        try {
+          var mode = localStorage.getItem("nh.theme") || "dark";
+          var dark = mode === "dark" || (mode === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var root = document.documentElement;
+          root.classList.toggle("dark", dark);
+          root.setAttribute("data-theme-mode", dark ? "dark" : "light");
+          // 只兜底画布底色，避免 CSS 到达前的白闪；颜色变量交给 index.css，保证运行时切换仍然生效
+          root.style.backgroundColor = dark ? "#0A0A1A" : "#eef2f9";
+          var accents = {
+            cyan:   ["#22d3ee", "#0891b2"],
+            purple: ["#a78bfa", "#7c3aed"],
+            pink:   ["#f472b6", "#db2777"],
+            orange: ["#fb923c", "#ea580c"],
+            green:  ["#34d399", "#059669"],
+            mono:   ["#94a3b8", "#64748b"]
+          };
+          var a = accents[localStorage.getItem("nh.accent") || "cyan"] || accents.cyan;
+          root.style.setProperty("--brand-primary", a[0]);
+          root.style.setProperty("--brand-secondary", a[1]);
+          root.style.setProperty("--brand-gradient", "linear-gradient(135deg," + a[0] + "," + a[1] + ")");
+        } catch (e) {}
+      })();
+    </script>
     <script type="module">
       if (import.meta.hot?.on) {
         import.meta.hot.on('vite:error', (error) => {
@@ -31,7 +97,32 @@
   </head>
   <body>
     <div id="app-bg-layer" style="position:fixed;inset:0;z-index:0;pointer-events:none;transition:opacity 0.4s ease;opacity:0;"></div>
+    <!-- 启动骨架：与 #root 平级并固定覆盖，首字节到达即上屏；React 首帧后淡出移除，不产生布局位移 -->
+    <div id="boot-shell" aria-hidden="true">
+      <div class="bs-row">
+        <span class="bs-logo"></span>
+        <span class="bs-bar" style="width:132px"></span>
+        <span class="bs-grow"></span>
+        <span class="bs-pill" style="width:96px"></span>
+        <span class="bs-pill" style="width:72px"></span>
+      </div>
+      <div class="bs-hero">
+        <div class="bs-clock"></div>
+        <div class="bs-search">
+          <span class="bs-dot"></span>
+          <span class="bs-bar bs-grow" style="max-width:320px"></span>
+          <span class="bs-btn"></span>
+        </div>
+      </div>
+      <div class="bs-grid">
+        <div class="bs-card"></div><div class="bs-card"></div>
+        <div class="bs-card"></div><div class="bs-card"></div>
+        <div class="bs-card"></div><div class="bs-card"></div>
+        <div class="bs-card"></div><div class="bs-card"></div>
+      </div>
+    </div>
     <div id="root"></div>
+    <noscript><div id="boot-hint">请启用 JavaScript 以使用 Navigator Hub</div></noscript>
     <script type="module" src="/src/main.tsx"></script>
     <!-- 后台加速引擎：Service Worker 注册（仅生产环境） -->
     <script>

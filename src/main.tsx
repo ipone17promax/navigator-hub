@@ -56,3 +56,23 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </ErrorBoundary>
   </React.StrictMode>,
 );
+
+/**
+ * 首屏骨架收尾：等 React 真正把内容挂到 #root 后再淡出骨架，
+ * 避免并发渲染下「骨架先没了、内容还没上」的空白帧。
+ */
+(function dismissBootShell() {
+  const boot = document.getElementById("boot-shell");
+  if (!boot) return;
+  const started = performance.now();
+  const tick = () => {
+    const ready = (document.getElementById("root")?.childElementCount ?? 0) > 0;
+    if (ready || performance.now() - started > 4000) {
+      boot.style.opacity = "0";
+      window.setTimeout(() => boot.remove(), 280);
+      return;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+})();

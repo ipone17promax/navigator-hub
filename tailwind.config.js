@@ -73,6 +73,10 @@ export default {
       },
       animation: {
         "fade-in-up": "fadeInUp 0.7s cubic-bezier(0.22,1,0.36,1) both",
+        "fade-in": "fadeIn 0.24s ease both",
+        "slide-up": "slideUp 0.42s cubic-bezier(0.22,1,0.36,1) both",
+        "indeterminate": "indeterminate 1.4s ease-in-out infinite",
+        "pulse-glow": "pulseGlow 4.5s ease-in-out infinite",
         "gradient-shift": "gradientShift 14s ease-in-out infinite",
         shimmer: "shimmer 3.2s linear infinite",
         float: "float 6s ease-in-out infinite",
@@ -81,6 +85,22 @@ export default {
         fadeInUp: {
           "0%": { opacity: "0", transform: "translateY(20px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        slideUp: {
+          "0%": { opacity: "0", transform: "translateY(18px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        indeterminate: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
+        pulseGlow: {
+          "0%,100%": { opacity: "0.35" },
+          "50%": { opacity: "0.6" },
         },
         gradientShift: {
           "0%,100%": { backgroundPosition: "0% 50%" },

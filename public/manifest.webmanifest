@@ -1,0 +1,19 @@
+{
+  "name": "Navigator Hub · 星际导航中心",
+  "short_name": "NavigatorHub",
+  "description": "个人网址导航：搜索、收藏、行情、天气、内容与自研小工具，无广告。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0A0A1A",
+  "theme_color": "#0A0A1A",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
