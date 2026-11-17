@@ -19,7 +19,7 @@
     />
     <!-- 首屏关键样式内联：避免 FOUC 闪烁 -->
     <style>
-      html,body{margin:0;padding:0;background:#0A0A1A;color:#fff;}
+      html,body{margin:0;padding:0;background:var(--bg-base,#0A0A1A);color:var(--ink-default,#fff);}
       #root{min-height:100vh;}
     </style>
     <script type="module">
@@ -35,7 +35,7 @@
     </script>
   </head>
   <body>
-    <div id="app-bg-layer" style="position:fixed;inset:0;z-index:-1;pointer-events:none;transition:opacity 0.4s ease;opacity:0;"></div>
+    <div id="app-bg-layer" style="position:fixed;inset:0;z-index:0;pointer-events:none;transition:opacity 0.4s ease;opacity:0;"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- 后台加速引擎：Service Worker 注册（仅生产环境） -->

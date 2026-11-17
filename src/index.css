@@ -42,6 +42,110 @@ html[data-theme="ocean"] {
   --stroke-hover: rgba(14, 165, 233, 0.55);
 }
 
+/* 浅色主题：由「主题配色 → 浅色 / 跟随系统」写入 html[data-theme-mode] */
+html[data-theme-mode="light"] {
+  --bg-base: #eef2f9;
+  --bg-elevate: rgba(15, 23, 42, 0.05);
+  --ink-default: #0f172a;
+  --ink-muted: #475569;
+  --ink-subtle: #64748b;
+  --stroke-default: rgba(15, 23, 42, 0.12);
+  --stroke-hover: rgba(99, 102, 241, 0.5);
+}
+
+/* 浅色主题下预设壁纸压暗，避免深色渐变盖回深色界面 */
+html[data-theme-mode="light"] #app-bg-layer {
+  opacity: 0.12 !important;
+}
+
+/* ============================================================
+   预设背景（设置 → 壁纸 → 预设渐变）
+   由 BackgroundSwitcher 切换到 #app-bg-layer 的 class 上
+   ============================================================ */
+.bg-starfield {
+  background-color: #05060f;
+  background-image:
+    radial-gradient(1.6px 1.6px at 18% 28%, rgba(255, 255, 255, 0.9) 50%, transparent 51%),
+    radial-gradient(1.4px 1.4px at 68% 16%, rgba(255, 255, 255, 0.7) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 44% 68%, rgba(255, 255, 255, 0.6) 50%, transparent 51%),
+    radial-gradient(1.8px 1.8px at 86% 58%, rgba(255, 255, 255, 0.85) 50%, transparent 51%),
+    radial-gradient(ellipse at 50% 120%, rgba(99, 102, 241, 0.4), transparent 62%),
+    linear-gradient(180deg, #05060f 0%, #0a0a1a 55%, #0c1130 100%);
+  background-size: 420px 420px, 520px 520px, 360px 360px, 640px 640px, 100% 100%, 100% 100%;
+  background-repeat: repeat, repeat, repeat, repeat, no-repeat, no-repeat;
+}
+
+.bg-aurora {
+  background-color: #04121a;
+  background-image:
+    radial-gradient(ellipse 60% 45% at 22% 10%, rgba(16, 185, 129, 0.45), transparent 62%),
+    radial-gradient(ellipse 55% 45% at 78% 22%, rgba(59, 130, 246, 0.4), transparent 62%),
+    radial-gradient(ellipse 70% 50% at 55% 105%, rgba(20, 184, 166, 0.28), transparent 65%),
+    linear-gradient(180deg, #04121a 0%, #061a24 55%, #04121a 100%);
+}
+
+.bg-deepsea {
+  background-color: #041824;
+  background-image:
+    radial-gradient(circle at 50% -10%, rgba(14, 116, 144, 0.55), transparent 60%),
+    radial-gradient(circle at 15% 85%, rgba(2, 60, 96, 0.6), transparent 55%),
+    linear-gradient(180deg, #07202e 0%, #03121c 60%, #020a10 100%);
+}
+
+.bg-sunset {
+  background-color: #1a0b1e;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 100%, rgba(234, 88, 12, 0.55), transparent 65%),
+    linear-gradient(180deg, #140a22 0%, #3b1030 45%, #7a2418 78%, #c25a1c 100%);
+}
+
+.bg-neon {
+  background-color: #070713;
+  background-image:
+    radial-gradient(circle at 18% 18%, rgba(236, 72, 153, 0.45), transparent 55%),
+    radial-gradient(circle at 82% 68%, rgba(34, 211, 238, 0.4), transparent 55%),
+    radial-gradient(circle at 50% 110%, rgba(168, 85, 247, 0.35), transparent 60%),
+    linear-gradient(180deg, #070713 0%, #0b0820 100%);
+}
+
+.bg-cyber {
+  background-color: #05050d;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(99, 102, 241, 0.1) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(90deg, rgba(99, 102, 241, 0.1) 0 1px, transparent 1px 42px),
+    radial-gradient(circle at 50% 0%, rgba(76, 29, 149, 0.55), transparent 62%),
+    linear-gradient(180deg, #0a0820 0%, #05050d 100%);
+}
+
+.bg-minimal {
+  background-color: #0b0d12;
+  background-image: linear-gradient(180deg, #0d1017 0%, #080a0f 100%);
+}
+
+.bg-sakura {
+  background-color: #140a12;
+  background-image:
+    radial-gradient(circle at 24% 18%, rgba(244, 114, 182, 0.42), transparent 58%),
+    radial-gradient(circle at 76% 74%, rgba(167, 139, 250, 0.36), transparent 58%),
+    linear-gradient(180deg, #170b16 0%, #0f0710 100%);
+}
+
+.bg-warm {
+  background-color: #140d08;
+  background-image:
+    radial-gradient(circle at 20% 14%, rgba(251, 146, 60, 0.42), transparent 58%),
+    radial-gradient(circle at 84% 72%, rgba(245, 158, 11, 0.32), transparent 55%),
+    linear-gradient(180deg, #170f09 0%, #0d0805 100%);
+}
+
+.bg-matrix {
+  background-color: #04120c;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(52, 211, 153, 0.12) 0 1px, transparent 1px 36px),
+    radial-gradient(circle at 50% 0%, rgba(6, 95, 70, 0.55), transparent 65%),
+    linear-gradient(180deg, #04120c 0%, #030805 100%);
+}
+
 /* ============================================================
    全局基础样式
    ============================================================ */
@@ -49,6 +153,12 @@ html,
 body,
 #root {
   min-height: 100%;
+}
+
+/* 内容层压在背景层之上（背景层为 position:fixed; z-index:0） */
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 body {
