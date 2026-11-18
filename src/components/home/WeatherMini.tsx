@@ -1,6 +1,7 @@
 import * as Icons from "@/lib/iconRegistry";
 import { useWeather } from "@/hooks/useWeather";
 import { resolveIcon } from "@/lib/icons";
+import { useI18n } from "@/i18n";
 
 /**
  * 360 风格顶部迷你天气：只显示 图标+温度+城市，点击无操作
@@ -8,6 +9,7 @@ import { resolveIcon } from "@/lib/icons";
  * 加载/失败时显示占位，不报错
  */
 export default function WeatherMini() {
+  const { locale } = useI18n();
   const { data, status } = useWeather();
   if (status === "loading" || !data) {
     return (
@@ -21,7 +23,7 @@ export default function WeatherMini() {
   return (
     <div
       className="inline-flex items-center gap-1.5 rounded-xl border border-stroke bg-bg-elevate/60 px-2.5 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
-      title={`${data.city} · ${data.condition} · ${data.temp}°C · 湿度${data.humidity}%`}
+      title={`${data.city} · ${locale === "en" ? data.conditionEn : data.condition} · ${data.temp}°C · ${locale === "en" ? "Humidity" : "湿度"}${data.humidity}%`}
     >
       <I size={14} className={data.isDay ? "text-amber-400" : "text-indigo-300"} />
       <span className="text-[12px] font-semibold text-ink/80">{data.temp}°</span>

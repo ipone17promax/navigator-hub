@@ -12,10 +12,35 @@ function getIcon(name: string) {
  * 不再自己管 fetch / 地理定位 / 兜底，全部交给 hook
  */
 export default function WeatherWidget() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { data, status, reload } = useWeather();
 
   if (status === "loading" || !data) {
+    if (status === "error") {
+      return (
+        <div className="rounded-2xl border border-stroke bg-bg-elevate/50 p-4 backdrop-blur-sm shadow-glow-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Icons.CloudSun size={16} className="text-amber-400" />
+              <span className="text-[13px] font-semibold text-ink/80">{t.weather.title}</span>
+            </div>
+            <button onClick={() => reload()} className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink" title={t.common.refresh}>
+              <Icons.RefreshCw size={14} />
+            </button>
+          </div>
+          <div className="mt-3 flex flex-col items-center justify-center gap-2 py-4 text-center">
+            <Icons.CloudSun size={26} className="text-ink-subtle opacity-50" />
+            <p className="text-[11px] text-ink-muted">{t.weather.error}</p>
+            <button
+              onClick={() => reload()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-stroke px-3 py-1.5 text-xs text-ink transition-colors hover:bg-white/5"
+            >
+              <Icons.RefreshCw size={12} /> {t.common.refresh}
+            </button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="rounded-2xl border border-stroke bg-bg-elevate/50 p-4 backdrop-blur-sm shadow-glow-xs">
         <div className="flex items-center justify-between">
@@ -55,7 +80,7 @@ export default function WeatherWidget() {
             <span className="text-3xl font-bold text-ink">{data.temp}</span>
             <span className="text-sm text-ink-muted">°C</span>
           </div>
-          <p className="text-[13px] text-ink/80">{data.condition}</p>
+          <p className="text-[13px] text-ink/80">{locale === "en" ? data.conditionEn : data.condition}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-muted">
             <span className="inline-flex items-center gap-0.5"><Icons.Droplets size={11} />{data.humidity}%</span>
             <span className="inline-flex items-center gap-0.5"><Icons.Wind size={11} />{data.windSpeed} km/h</span>
@@ -68,7 +93,7 @@ export default function WeatherWidget() {
           const I = getIcon(d.icon);
           return (
             <div key={i} className="flex flex-col items-center gap-1 rounded-xl bg-white/5 p-2">
-              <span className="text-[10px] text-ink-muted">{d.day}</span>
+              <span className="text-[10px] text-ink-muted">{locale === "en" ? d.dayEn : d.day}</span>
               <I size={16} className="text-amber-400" />
               <span className="text-[11px] font-semibold text-ink">{d.max}° / {d.min}°</span>
             </div>

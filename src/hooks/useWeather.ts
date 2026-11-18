@@ -4,6 +4,7 @@ import { logger } from "@/lib/logger";
 
 export interface Forecast {
   day: string;
+  dayEn: string;
   max: number;
   min: number;
   icon: string;
@@ -12,6 +13,7 @@ export interface Forecast {
 export interface WeatherData {
   temp: number;
   condition: string;
+  conditionEn: string;
   icon: string;
   city: string;
   humidity: number;
@@ -23,39 +25,76 @@ export interface WeatherData {
 
 export type WeatherStatus = "loading" | "ok" | "error";
 
-function wmoToText(code: number, isDay: boolean): { c: string; icon: string } {
-  const sun = isDay ? "Sun" : "Moon";
-  const cloudSun = isDay ? "CloudSun" : "CloudMoon";
-  const map: Record<number, { c: string; icon: string }> = {
-    0: { c: "晴", icon: sun },
-    1: { c: "晴间多云", icon: cloudSun }, 2: { c: "多云", icon: cloudSun },
-    3: { c: "阴", icon: "Cloud" },
-    45: { c: "雾", icon: "CloudFog" }, 48: { c: "雾凇", icon: "CloudFog" },
-    51: { c: "小毛毛雨", icon: "CloudDrizzle" }, 53: { c: "毛毛雨", icon: "CloudDrizzle" },
-    55: { c: "大毛毛雨", icon: "CloudDrizzle" }, 56: { c: "冻毛毛雨", icon: "CloudHail" },
-    57: { c: "冻毛毛雨", icon: "CloudHail" },
-    61: { c: "小雨", icon: "CloudRain" }, 63: { c: "中雨", icon: "CloudRain" },
-    65: { c: "大雨", icon: "CloudRain" }, 66: { c: "冻雨", icon: "CloudHail" },
-    67: { c: "冻雨", icon: "CloudHail" },
-    71: { c: "小雪", icon: "CloudSnow" }, 73: { c: "中雪", icon: "CloudSnow" },
-    75: { c: "大雪", icon: "CloudSnow" }, 77: { c: "米雪", icon: "CloudSnow" },
-    80: { c: "小阵雨", icon: "CloudRain" }, 81: { c: "阵雨", icon: "CloudRain" },
-    82: { c: "强阵雨", icon: "CloudRain" }, 85: { c: "小阵雪", icon: "CloudSnow" },
-    86: { c: "大阵雪", icon: "CloudSnow" },
-    95: { c: "雷暴", icon: "CloudLightning" }, 96: { c: "雷暴伴小冰雹", icon: "CloudLightning" },
-    99: { c: "雷暴伴大冰雹", icon: "CloudLightning" },
-  };
-  const hit = map[code];
-  return hit ? hit : { c: "未知", icon: "Cloud" };
+const POS_KEY = "nh.weather.pos.v1";
+const DATA_KEY = "nh.weather.data.v1";
+const POS_TTL = 12 * 60 * 60 * 1000;
+const DATA_TTL = 30 * 60 * 1000;
+const DEFAULT_POS = { lat: 39.9075, lon: 116.3972 };
+
+interface Pos {
+  lat: number;
+  lon: number;
+  at?: number;
 }
 
-function getPos(): Promise<{ lat: number; lon: number }> {
+interface CachedData {
+  at: number;
+  data: WeatherData;
+}
+
+let memoryData: WeatherData | null = null;
+let inflight: Promise<WeatherData | null> | null = null;
+
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeJson(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* 隐私模式/配额满时忽略 */
+  }
+}
+
+function wmoToText(code: number, isDay: boolean): { c: string; en: string; icon: string } {
+  const sun = isDay ? "Sun" : "Moon";
+  const cloudSun = isDay ? "CloudSun" : "CloudMoon";
+  const map: Record<number, { c: string; en: string; icon: string }> = {
+    0: { c: "晴", en: "Clear", icon: sun },
+    1: { c: "晴间多云", en: "Mostly clear", icon: cloudSun }, 2: { c: "多云", en: "Partly cloudy", icon: cloudSun },
+    3: { c: "阴", en: "Overcast", icon: "Cloud" },
+    45: { c: "雾", en: "Fog", icon: "CloudFog" }, 48: { c: "雾凇", en: "Rime fog", icon: "CloudFog" },
+    51: { c: "小毛毛雨", en: "Light drizzle", icon: "CloudDrizzle" }, 53: { c: "毛毛雨", en: "Drizzle", icon: "CloudDrizzle" },
+    55: { c: "大毛毛雨", en: "Heavy drizzle", icon: "CloudDrizzle" }, 56: { c: "冻毛毛雨", en: "Freezing drizzle", icon: "CloudHail" },
+    57: { c: "冻毛毛雨", en: "Freezing drizzle", icon: "CloudHail" },
+    61: { c: "小雨", en: "Light rain", icon: "CloudRain" }, 63: { c: "中雨", en: "Rain", icon: "CloudRain" },
+    65: { c: "大雨", en: "Heavy rain", icon: "CloudRain" }, 66: { c: "冻雨", en: "Freezing rain", icon: "CloudHail" },
+    67: { c: "冻雨", en: "Freezing rain", icon: "CloudHail" },
+    71: { c: "小雪", en: "Light snow", icon: "CloudSnow" }, 73: { c: "中雪", en: "Snow", icon: "CloudSnow" },
+    75: { c: "大雪", en: "Heavy snow", icon: "CloudSnow" }, 77: { c: "米雪", en: "Snow grains", icon: "CloudSnow" },
+    80: { c: "小阵雨", en: "Light showers", icon: "CloudRain" }, 81: { c: "阵雨", en: "Showers", icon: "CloudRain" },
+    82: { c: "强阵雨", en: "Heavy showers", icon: "CloudRain" }, 85: { c: "小阵雪", en: "Light snow showers", icon: "CloudSnow" },
+    86: { c: "大阵雪", en: "Heavy snow showers", icon: "CloudSnow" },
+    95: { c: "雷暴", en: "Thunderstorm", icon: "CloudLightning" }, 96: { c: "雷暴伴小冰雹", en: "Thunderstorm with hail", icon: "CloudLightning" },
+    99: { c: "雷暴伴大冰雹", en: "Thunderstorm with heavy hail", icon: "CloudLightning" },
+  };
+  const hit = map[code];
+  return hit ? hit : { c: "未知", en: "Unknown", icon: "Cloud" };
+}
+
+function getPos(): Promise<Pos> {
   return new Promise((resolve, reject) => {
     if (!("geolocation" in navigator)) return reject(new Error("no geolocation"));
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
       (e) => reject(e),
-      { timeout: 8000, maximumAge: 600000, enableHighAccuracy: false },
+      { timeout: 4000, maximumAge: 1800000, enableHighAccuracy: false },
     );
   });
 }
@@ -64,37 +103,86 @@ function inChina(lat: number, lon: number): boolean {
   return lat >= 18 && lat <= 54 && lon >= 73 && lon <= 135;
 }
 
-async function locate(): Promise<{ lat: number; lon: number }> {
-  // 1. 优先浏览器定位（最准）
-  try {
-    const p = await getPos();
-    if (inChina(p.lat, p.lon)) return p;
-  } catch { /* 用户拒绝或不支持，继续 IP 定位 */ }
+async function fromIpwho(): Promise<Pos> {
+  const j = await safeJson<{ success: boolean; latitude?: number; longitude?: number }>(
+    "https://ipwho.is/?lang=zh",
+    { timeoutMs: 3500 },
+  );
+  if (j && j.success && typeof j.latitude === "number" && typeof j.longitude === "number") {
+    const pos = { lat: j.latitude, lon: j.longitude };
+    if (inChina(pos.lat, pos.lon)) return pos;
+  }
+  throw new Error("ipwho failed");
+}
 
-  // 2. ipwho.is（HTTPS + CORS）
-  try {
-    const j = await safeJson<{ success: boolean; latitude?: number; longitude?: number }>(
-      "https://ipwho.is/?lang=zh"
-    );
-    if (j && j.success && typeof j.latitude === "number" && typeof j.longitude === "number") {
-      const pos = { lat: j.latitude, lon: j.longitude };
-      if (inChina(pos.lat, pos.lon)) return pos;
+async function fromIpapi(): Promise<Pos> {
+  const j = await safeJson<{ latitude?: number; longitude?: number }>(
+    "https://ipapi.co/json/",
+    { timeoutMs: 3500 },
+  );
+  if (j && typeof j.latitude === "number" && typeof j.longitude === "number") {
+    const pos = { lat: j.latitude, lon: j.longitude };
+    if (inChina(pos.lat, pos.lon)) return pos;
+  }
+  throw new Error("ipapi failed");
+}
+
+async function fromIpinfo(): Promise<Pos> {
+  const j = await safeJson<{ loc?: string }>("https://ipinfo.io/json", { timeoutMs: 3500 });
+  if (j?.loc) {
+    const [lat, lon] = j.loc.split(",").map(Number);
+    if (Number.isFinite(lat) && Number.isFinite(lon) && inChina(lat, lon)) return { lat, lon };
+  }
+  throw new Error("ipinfo failed");
+}
+
+async function fromIpapiIs(): Promise<Pos> {
+  const j = await safeJson<{ lat?: number; lon?: number }>("https://api.ipapi.is/", { timeoutMs: 3500 });
+  if (typeof j?.lat === "number" && typeof j?.lon === "number" && inChina(j.lat, j.lon)) {
+    return { lat: j.lat, lon: j.lon };
+  }
+  throw new Error("ipapi.is failed");
+}
+
+function firstSuccess<T>(tasks: Promise<T>[]): Promise<T | null> {
+  return new Promise((resolve) => {
+    let done = false;
+    let remaining = tasks.length;
+    for (const task of tasks) {
+      task
+        .then((v) => {
+          if (!done) {
+            done = true;
+            resolve(v);
+          }
+        })
+        .catch(() => {
+          remaining -= 1;
+          if (remaining === 0 && !done) resolve(null);
+        });
     }
-  } catch { /* 继续兜底 */ }
+  });
+}
 
-  // 3. ipapi.co 备用
-  try {
-    const j = await safeJson<{ latitude: number; longitude: number }>(
-      "https://ipapi.co/json/"
-    );
-    if (j && j.latitude && j.longitude) {
-      const pos = { lat: j.latitude, lon: j.longitude };
-      if (inChina(pos.lat, pos.lon)) return pos;
-    }
-  } catch { /* 继续兜底 */ }
+/**
+ * 定位：缓存坐标 → 浏览器定位与 IP 定位并行，最多等 4.2 秒
+ *   - 不再串行等待多个失败接口，避免天气卡长时间空白
+ *   - 全部失败时直接使用北京，保证天气能显示
+ */
+async function locate(): Promise<Pos> {
+  const cached = readJson<Pos>(POS_KEY);
+  if (cached && cached.at && Date.now() - cached.at < POS_TTL) return cached;
 
-  // 4. 默认北京
-  return { lat: 39.9075, lon: 116.3972 };
+  const timeout = () => new Promise<null>((r) => setTimeout(() => r(null), 4200));
+  const geo = getPos()
+    .then((p) => (inChina(p.lat, p.lon) ? p : null))
+    .catch(() => null);
+  const ip = firstSuccess([fromIpwho(), fromIpapi(), fromIpinfo(), fromIpapiIs()]);
+
+  const [g, i] = await Promise.all([Promise.race([geo, timeout()]), Promise.race([ip, timeout()])]);
+  const pos = g || i || DEFAULT_POS;
+  writeJson(POS_KEY, { ...pos, at: Date.now() });
+  return pos;
 }
 
 async function reverseGeocode(lat: number, lon: number): Promise<string> {
@@ -144,12 +232,15 @@ async function fetchWeather(lat: number, lon: number): Promise<Omit<WeatherData,
   const isDay = cur.is_day === 1;
   const curText = wmoToText(cur.weather_code, isDay);
   const weekdays = ["日", "一", "二", "三", "四", "五", "六"];
+  const weekdaysEn = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const forecast: Forecast[] = day.time.map((t: string, i: number) => {
     const d = new Date(t);
     const label = i === 0 ? "今天" : "周" + weekdays[d.getDay()];
+    const labelEn = i === 0 ? "Today" : weekdaysEn[d.getDay()];
     const f = wmoToText(day.weather_code[i], true);
     return {
       day: label,
+      dayEn: labelEn,
       max: Math.round(day.temperature_2m_max[i]),
       min: Math.round(day.temperature_2m_min[i]),
       icon: f.icon,
@@ -160,6 +251,7 @@ async function fetchWeather(lat: number, lon: number): Promise<Omit<WeatherData,
   return {
     temp: Math.round(cur.temperature_2m),
     condition: curText.c,
+    conditionEn: curText.en,
     icon: curText.icon,
     humidity: cur.relative_humidity_2m,
     windSpeed: Math.round(cur.wind_speed_10m),
@@ -169,22 +261,52 @@ async function fetchWeather(lat: number, lon: number): Promise<Omit<WeatherData,
   };
 }
 
-export function useWeather() {
-  const [data, setData] = useState<WeatherData | null>(null);
-  const [status, setStatus] = useState<WeatherStatus>("loading");
+/** 同一时刻只发一轮请求，天气卡与顶部迷你天气共用结果 */
+function loadShared(): Promise<WeatherData | null> {
+  if (!inflight) {
+    inflight = (async () => {
+      try {
+        const { lat, lon } = await locate();
+        const [city, w] = await Promise.all([reverseGeocode(lat, lon), fetchWeather(lat, lon)]);
+        const data: WeatherData = { ...w, city };
+        memoryData = data;
+        writeJson(DATA_KEY, { at: Date.now(), data } satisfies CachedData);
+        logger.info("useWeather", "天气获取成功", { city, temp: w.temp });
+        return data;
+      } catch (e) {
+        logger.error("useWeather", "天气获取失败", { error: (e as Error)?.message });
+        return null;
+      }
+    })().finally(() => {
+      inflight = null;
+    });
+  }
+  return inflight;
+}
 
-  const load = useCallback(async () => {
-    setStatus("loading");
-    logger.info("useWeather", "开始加载天气");
-    try {
-      const { lat, lon } = await locate();
-      const [city, w] = await Promise.all([reverseGeocode(lat, lon), fetchWeather(lat, lon)]);
-      setData({ ...w, city });
+export function useWeather() {
+  const [data, setData] = useState<WeatherData | null>(
+    () => memoryData ?? readJson<CachedData>(DATA_KEY)?.data ?? null,
+  );
+  const [status, setStatus] = useState<WeatherStatus>(() => (data ? "ok" : "loading"));
+
+  const load = useCallback(async (force = false) => {
+    const stored = readJson<CachedData>(DATA_KEY);
+    const cached = memoryData ? { at: stored?.at ?? 0, data: memoryData } : stored;
+    if (cached) {
+      setData(cached.data);
       setStatus("ok");
-      logger.info("useWeather", "天气获取成功", { city, temp: w.temp });
-    } catch (e) {
+      if (!force && Date.now() - cached.at < DATA_TTL) return;
+    } else {
+      setStatus("loading");
+    }
+
+    const fresh = await loadShared();
+    if (fresh) {
+      setData(fresh);
+      setStatus("ok");
+    } else if (!cached) {
       setStatus("error");
-      logger.error("useWeather", "天气获取失败", { error: (e as Error)?.message });
     }
   }, []);
 
@@ -192,5 +314,5 @@ export function useWeather() {
     void load();
   }, [load]);
 
-  return { data, status, reload: load };
+  return { data, status, reload: () => load(true) };
 }
