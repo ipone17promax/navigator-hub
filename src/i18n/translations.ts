@@ -16,6 +16,11 @@ export interface Dict {
   searchBtn: string;
   hotSearch: string;
   search: { history: string; clear: string; urlHint: string; bangHint: string };
+  searchTabs: {
+    web: string; image: string; video: string; news: string; map: string; scholar: string;
+    openNew: string; loading: string; keyword: string; resultsTitle: string; previewHint: string;
+    opening: string; willOpen: string; goSearch: string; emptyTitle: string; emptyHint: string; tags: string[];
+  };
   cats: Record<string, string>;
   nav: { home: string; storm: string; binary: string; morse: string; clock: string; qr: string; json: string };
   footer: { tip: string; slash: string; cmd: string; switch: string; copyright: string };
@@ -74,6 +79,20 @@ export const dict: Record<Locale, Dict> = {
     searchBtn: "搜索",
     hotSearch: "热门搜索",
     search: { history: "最近搜索", clear: "清空", urlHint: "网址，回车直达", bangHint: "指定引擎" },
+    searchTabs: {
+      web: "网页", image: "图片", video: "视频", news: "资讯", map: "地图", scholar: "学术",
+      openNew: "新标签打开",
+      loading: "正在加载「{tab}」搜索结果…",
+      keyword: "关键词",
+      resultsTitle: "{tab}搜索结果",
+      previewHint: "ⓘ 内嵌预览可能受网站 X-Frame-Options 限制，点击「新标签打开」可查看完整结果",
+      opening: "即将打开{tab}搜索",
+      willOpen: "关键词「{q}」将在新标签页中打开",
+      goSearch: "前往{tab}搜索",
+      emptyTitle: "{tab}搜索",
+      emptyHint: "在上方搜索框输入关键词，即可在页面内预览「{tab}」结果",
+      tags: ["React", "AI", "天气", "编程"],
+    },
     cats: {
       all: "全部",
       dev: "开发工具",
@@ -144,7 +163,7 @@ export const dict: Record<Locale, Dict> = {
     week: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
     today: "Today is",
-    appName: "Navigator Hub",
+    appName: "Star Navigation Center",
     brandSub: "Search · Tools · Favorites",
     adminBadge: "Admin Mode",
     guestBadge: "Guest Mode",
@@ -154,6 +173,20 @@ export const dict: Record<Locale, Dict> = {
     searchBtn: "Search",
     hotSearch: "Hot",
     search: { history: "Recent", clear: "Clear", urlHint: "URL — Enter to open", bangHint: "Engine" },
+    searchTabs: {
+      web: "Web", image: "Images", video: "Videos", news: "News", map: "Maps", scholar: "Scholar",
+      openNew: "Open in new tab",
+      loading: "Loading {tab} results…",
+      keyword: "Keyword",
+      resultsTitle: "{tab} results",
+      previewHint: "ⓘ Inline preview may be blocked by X-Frame-Options. Use “Open in new tab” for full results.",
+      opening: "Opening {tab} search",
+      willOpen: "Keyword “{q}” will open in a new tab",
+      goSearch: "Search with {tab}",
+      emptyTitle: "{tab} Search",
+      emptyHint: "Type a keyword above to preview {tab} results here",
+      tags: ["React", "AI", "Weather", "Coding"],
+    },
     cats: { all: "All", dev: "Dev", design: "Design", study: "Study", life: "Life", ai: "AI", tools: "Tools", custom: "Custom", private: "Private" },
     nav: { home: "Home", storm: "Storm", binary: "Binary", morse: "Morse", clock: "Compass", qr: "QR", json: "JSON" },
     footer: { tip: "Keyboard", slash: "Focus", cmd: "Command palette", switch: "Switch engine", copyright: "A curated navigator for your daily workflow" },

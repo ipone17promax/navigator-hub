@@ -37,7 +37,7 @@ function formatHot(n: number): string {
  *   - 失败时显示重试，不伪造数据
  */
 export default function ContentCenter() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { flash, hot, date, loading, err, load } = useFlashNews();
   const ref = useRef<HTMLElement | null>(null);
 
@@ -227,8 +227,8 @@ export default function ContentCenter() {
                     className="group flex items-center gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-white/5"
                   >
                     <I size={13} style={{ color: s.accent }} className="shrink-0" />
-                    <span className="truncate text-[12px] text-ink/80 group-hover:text-ink">{s.name}</span>
-                    <span className="ml-auto hidden shrink-0 text-[10px] text-ink-subtle sm:block">{s.description}</span>
+                    <span className="truncate text-[12px] text-ink/80 group-hover:text-ink">{locale === "en" && s.nameEn ? s.nameEn : s.name}</span>
+                    <span className="ml-auto hidden shrink-0 text-[10px] text-ink-subtle sm:block">{locale === "en" && s.descriptionEn ? s.descriptionEn : s.description}</span>
                   </a>
                 );
               })}

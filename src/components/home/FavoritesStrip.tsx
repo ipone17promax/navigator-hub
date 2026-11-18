@@ -9,7 +9,7 @@ import { resolveIcon } from "@/lib/icons";
  * 没有收藏时不渲染，避免占位
  */
 export default function FavoritesStrip() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const favorites = useUserStore((s) => s.favorites);
   const favOrder = useUserStore((s) => s.favoriteOrder);
   const customSites = useUserStore((s) => s.customSites);
@@ -19,7 +19,7 @@ export default function FavoritesStrip() {
   if (favIds.length === 0) return null;
 
   const allSites = [
-    ...SITES.map((s) => ({ id: s.id, name: s.name, url: s.url, category: s.category, iconName: s.iconName || "Globe" })),
+    ...SITES.map((s) => ({ id: s.id, name: locale === "en" && s.nameEn ? s.nameEn : s.name, url: s.url, category: s.category, iconName: s.iconName || "Globe" })),
     ...customSites.map((s) => ({ id: s.id, name: s.name, url: s.url, category: (s as any).categoryId || "all", iconName: s.icon || "Globe" })),
   ];
 

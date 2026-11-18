@@ -76,7 +76,7 @@ export function runHealthCheck(siteIds: string[]) {
 }
 
 export function HighFreqBar({ onOpen }: { onOpen?: (url: string, info: { id: string; name: string; categoryId: string; url: string }) => void }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const visits = useUserStore((s) => s.visits);
   const top = [...visits].sort((a, b) => b.count - a.count).slice(0, 6);
   if (top.length === 0) return null;
@@ -87,7 +87,10 @@ export function HighFreqBar({ onOpen }: { onOpen?: (url: string, info: { id: str
         <span className="text-xs font-semibold uppercase tracking-widest text-ink-subtle">{t.recommend.freq}</span>
       </div>
       <div className="flex flex-wrap gap-2">
-        {top.map((v, i) => (
+        {top.map((v, i) => {
+          const site = SITES.find((s) => s.id === v.siteId);
+          const label = locale === "en" && site?.nameEn ? site.nameEn : v.siteName;
+          return (
           <button
             key={v.siteId}
             onClick={() => {
@@ -98,10 +101,11 @@ export function HighFreqBar({ onOpen }: { onOpen?: (url: string, info: { id: str
             style={{ animation: `fadeInUp .5s ${i * 50}ms both` }}
           >
             <span className="font-mono text-[10px] font-bold text-brand-primary">#{i + 1}</span>
-            <span className="text-ink">{v.siteName}</span>
+            <span className="text-ink">{label}</span>
             <span className="text-[11px] text-ink-subtle">{v.count}{t.stats.visits}</span>
           </button>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

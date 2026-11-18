@@ -2,10 +2,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import * as Icons from "@/lib/iconRegistry";
 import type { LucideIcon } from "lucide-react";
 import { useAppStore } from "@/stores/useAppStore";
+import { useI18n } from "@/i18n";
+
+type TabKey = "web" | "image" | "video" | "news" | "map" | "scholar";
 
 interface TabConfig {
-  key: string;
-  label: string;
+  key: TabKey;
   icon: string;
   accent: string;
   searchUrl: string;
@@ -16,7 +18,6 @@ interface TabConfig {
 const TABS: TabConfig[] = [
   {
     key: "web",
-    label: "网页",
     icon: "Globe",
     accent: "#6366F1",
     searchUrl: "https://www.baidu.com/s?wd={q}",
@@ -25,7 +26,6 @@ const TABS: TabConfig[] = [
   },
   {
     key: "image",
-    label: "图片",
     icon: "Image",
     accent: "#10B981",
     searchUrl: "https://image.baidu.com/search/index?tn=baiduimage&word={q}",
@@ -34,7 +34,6 @@ const TABS: TabConfig[] = [
   },
   {
     key: "video",
-    label: "视频",
     icon: "PlayCircle",
     accent: "#F87171",
     searchUrl: "https://search.bilibili.com/all?keyword={q}",
@@ -43,7 +42,6 @@ const TABS: TabConfig[] = [
   },
   {
     key: "news",
-    label: "资讯",
     icon: "Newspaper",
     accent: "#FBBF24",
     searchUrl: "https://news.baidu.com/ns?word={q}",
@@ -52,7 +50,6 @@ const TABS: TabConfig[] = [
   },
   {
     key: "map",
-    label: "地图",
     icon: "MapPin",
     accent: "#60A5FA",
     searchUrl: "https://map.baidu.com/search/{q}",
@@ -61,7 +58,6 @@ const TABS: TabConfig[] = [
   },
   {
     key: "scholar",
-    label: "学术",
     icon: "GraduationCap",
     accent: "#8B5CF6",
     searchUrl: "https://xueshu.baidu.com/s?wd={q}",
@@ -75,8 +71,10 @@ function getIcon(name: string): LucideIcon {
 }
 
 export default function SearchTabs() {
+  const { t } = useI18n();
+  const st = t.searchTabs;
   const keyword = useAppStore((s) => s.keyword);
-  const [active, setActive] = useState<string>("web");
+  const [active, setActive] = useState<TabKey>("web");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [iframeLoading, setIframeLoading] = useState(false);
   const [iframeUrl, setIframeUrl] = useState("");
@@ -85,6 +83,7 @@ export default function SearchTabs() {
     () => TABS.find((t) => t.key === active) ?? TABS[0],
     [active],
   );
+  const activeLabel = st[activeTab.key];
 
   const searchUrl = useMemo(() => {
     const q = keyword.trim();
@@ -138,7 +137,7 @@ export default function SearchTabs() {
               }
             >
               <TabIcon size={15} />
-              {tab.label}
+              {st[tab.key]}
             </button>
           );
         })}
@@ -163,7 +162,7 @@ export default function SearchTabs() {
               onClick={() => goExternal(activeTab.searchUrl)}
               className="rounded-md border border-stroke px-2 py-0.5 text-[11px] text-ink-muted transition-colors hover:border-stroke-hover hover:text-ink"
             >
-              新标签打开
+              {st.openNew}
             </button>
           </div>
 
@@ -176,10 +175,10 @@ export default function SearchTabs() {
                 style={{ color: activeTab.accent }}
               />
               <span className="mt-3 text-sm text-ink-muted">
-                正在加载「{activeTab.label}」搜索结果…
+                {st.loading.replace("{tab}", activeLabel)}
               </span>
               <span className="mt-1 text-[11px] text-ink-subtle">
-                关键词: "{keyword}"
+                {st.keyword}: "{keyword}"
               </span>
             </div>
           )}
@@ -190,13 +189,13 @@ export default function SearchTabs() {
             src={iframeUrl}
             onLoad={() => setIframeLoading(false)}
             className="block h-[600px] w-full"
-            title={`${activeTab.label}搜索结果`}
+            title={st.resultsTitle.replace("{tab}", activeLabel)}
             sandbox="allow-forms allow-scripts allow-popups allow-popups-to-escape-sandbox"
           />
 
           {/* 提示条 */}
           <div className="border-t border-stroke/50 bg-bg-elevate/60 px-4 py-1.5 text-[11px] text-ink-subtle">
-            ⓘ 内嵌预览可能受网站 X-Frame-Options 限制，点击「新标签打开」可查看完整结果
+            {st.previewHint}
           </div>
         </div>
       ) : activeTab.preview === "popup" && keyword.trim() ? (
@@ -210,17 +209,17 @@ export default function SearchTabs() {
             </div>
             <div>
               <div className="text-sm font-medium text-ink">
-                即将打开{activeTab.label}搜索
+                {st.opening.replace("{tab}", activeLabel)}
               </div>
               <div className="mt-1 text-xs text-ink-subtle">
-                关键词 "{keyword}" 将在新标签页中打开
+                {st.willOpen.replace("{q}", keyword)}
               </div>
             </div>
             <button
               onClick={() => goExternal(activeTab.searchUrl)}
               className="mt-2 rounded-xl bg-brand-gradient px-5 py-2 text-sm font-semibold text-white transition-all hover:-translate-y-0.5 hover:shadow-glow-lg"
             >
-              前往{activeTab.label}搜索
+              {st.goSearch.replace("{tab}", activeLabel)}
               <Icons.ArrowRight size={14} className="ml-1 inline" />
             </button>
           </div>
@@ -234,13 +233,13 @@ export default function SearchTabs() {
             <ActiveIcon size={32} style={{ color: activeTab.accent }} />
           </div>
           <div className="mt-4 text-base font-medium text-ink">
-            {activeTab.label}搜索
+            {st.emptyTitle.replace("{tab}", activeLabel)}
           </div>
           <div className="mt-1 text-sm text-ink-subtle">
-            在上方搜索框输入关键词，即可在页面内预览「{activeTab.label}」结果
+            {st.emptyHint.replace("{tab}", activeLabel)}
           </div>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            {["React", "AI", "天气", "编程"].map((tag) => (
+            {st.tags.map((tag) => (
               <button
                 key={tag}
                 onClick={() => {

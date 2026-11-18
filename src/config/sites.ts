@@ -142,13 +142,14 @@ export const SITES: SiteItem[] = [
   { id: "o-trello",    name: "Trello",       description: "看板式项目管理",       url: "https://trello.com",             category: "office", iconName: "LayoutList",  accent: "#0052CC" },
 
   // ---------- 气象灾害 weather ----------
-  { id: "w-storm-tracker", name: "全球风暴实时预告",
+  { id: "w-storm-tracker", name: "全球风暴实时预告", nameEn: "Global Storm Tracker",
     description: "🇺🇸 NOAA NHC 5日路径图 + 🇯🇵 JMA RSMC 东京台风中心 + 🌪️ Ventusky 全球热带气旋路径",
+    descriptionEn: "NOAA NHC 5-day cone + JMA RSMC Tokyo + Ventusky tropical cyclone tracks",
     url: "/storm-tracker",        // 内部 SPA 路由（React Router）
     category: "weather", iconName: "CloudLightning", accent: "#0284C7" },
 
   // ---------- 工具 tools ----------
-  { id: "t-binary", name: "二进制解析器", description: "文字 ↔ 二进制 双向转换工具", url: "/binary-parser", category: "tools", iconName: "Binary", accent: "#EC4899" },
-  { id: "t-morse", name: "摩斯电码机", description: "摩斯电码编码/解码器，支持音频播放", url: "/morse-code", category: "tools", iconName: "Radio", accent: "#8B5CF6" },
-  { id: "t-compass", name: "罗盘时钟", description: "中国传统罗盘风格时钟，多层同心圆", url: "/compass-clock", category: "tools", iconName: "Compass", accent: "#F59E0B" },
+  { id: "t-binary", name: "二进制解析器", nameEn: "Binary Parser", description: "文字 ↔ 二进制 双向转换工具", descriptionEn: "Text ↔ binary converter", url: "/binary-parser", category: "tools", iconName: "Binary", accent: "#EC4899" },
+  { id: "t-morse", name: "摩斯电码机", nameEn: "Morse Code", description: "摩斯电码编码/解码器，支持音频播放", descriptionEn: "Morse encoder/decoder with audio playback", url: "/morse-code", category: "tools", iconName: "Radio", accent: "#8B5CF6" },
+  { id: "t-compass", name: "罗盘时钟", nameEn: "Compass Clock", description: "中国传统罗盘风格时钟，多层同心圆", descriptionEn: "Traditional Chinese compass-style multi-ring clock", url: "/compass-clock", category: "tools", iconName: "Compass", accent: "#F59E0B" },
 ];

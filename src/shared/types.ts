@@ -36,7 +36,11 @@ export interface CategoryMeta {
 export interface SiteItem {
   id: string;
   name: string;
+  /** 英文界面下的展示名（可选，站内自有工具使用） */
+  nameEn?: string;
   description: string;
+  /** 英文界面下的简介（可选） */
+  descriptionEn?: string;
   url: string;
   category: Exclude<SiteCategory, "all">;
   /** Lucide icon name — 实际渲染使用 lucide-react 图标组件（按名称查找）*/

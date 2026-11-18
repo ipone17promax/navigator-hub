@@ -16,19 +16,26 @@ export default function SiteGrid() {
   const layout = useUserStore((s) => s.layout);
   const removeSite = useUserStore((s) => s.removeSite);
   const unlocked = useUserStore((s) => s.privateUnlocked);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const privateCatIds = useMemo(() => new Set(customCats.filter((c) => c.private).map((c) => c.id)), [customCats]);
   const privateHidden = (catId: string) => !unlocked && privateCatIds.has(catId);
 
   // 全部站点（内置 + 自定义），附带 custom 标记
   const allSites = useMemo<any[]>(() => {
-    const list: any[] = SITES.map((s) => ({ ...s, categoryId: s.category as string, desc: s.description, builtIn: true, custom: false }));
+    const list: any[] = SITES.map((s) => ({
+      ...s,
+      name: locale === "en" && s.nameEn ? s.nameEn : s.name,
+      desc: locale === "en" && s.descriptionEn ? s.descriptionEn : s.description,
+      categoryId: s.category as string,
+      builtIn: true,
+      custom: false,
+    }));
     customSites.forEach((s) => list.push({
       id: s.id, name: s.name, url: s.url, desc: s.desc || "", iconName: s.icon || "Globe", categoryId: s.categoryId, builtIn: false, custom: true,
     }));
     return list;
-  }, [customSites]);
+  }, [customSites, locale]);
 
   const visibleSites = useMemo(() => {
     let list = allSites;

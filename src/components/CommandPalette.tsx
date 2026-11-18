@@ -53,12 +53,18 @@ export default function CommandPalette() {
   }, [q]);
 
   const builtInSites = useMemo<any[]>(() => {
-    const all: any[] = SITES.map((s) => ({ ...s, categoryId: s.category as string, desc: s.description, builtIn: true }));
+    const all: any[] = SITES.map((s) => ({
+      ...s,
+      name: locale === "en" && s.nameEn ? s.nameEn : s.name,
+      categoryId: s.category as string,
+      desc: locale === "en" && s.descriptionEn ? s.descriptionEn : s.description,
+      builtIn: true,
+    }));
     customSites.forEach((s) => all.push({
       id: s.id, name: s.name, url: s.url, desc: s.desc || "", iconName: s.icon || "Globe", categoryId: s.categoryId as string, builtIn: false,
     }));
     return all;
-  }, [customSites]);
+  }, [customSites, locale]);
 
   const items = useMemo<Item[]>(() => {
     const low = q.trim().toLowerCase();
