@@ -7,7 +7,7 @@ import { useI18n } from "@/i18n";
 export default function AppFooter() {
   const { t } = useI18n();
   return (
-    <footer className="w-full pt-8 pb-6 text-center text-xs text-ink-subtle animate-fade-in-up" style={{ animationDelay: "320ms" }}>
+    <footer className="w-full pt-8 pb-24 text-center text-xs text-ink-subtle animate-fade-in-up" style={{ animationDelay: "320ms" }}>
       <div className="container flex flex-col items-center justify-center gap-2">
         <div className="flex items-center gap-2 text-ink-muted">
           <span className="font-display font-semibold tracking-wide text-ink">NavigatorHub</span>
@@ -27,6 +27,10 @@ export default function AppFooter() {
             <Github size={14} />
             GitHub
           </a>
+        </div>
+        <div className="mt-2 max-w-2xl space-y-1 border-t border-stroke/40 px-4 pt-2 text-[11px] leading-relaxed text-ink-subtle/80">
+          <p>{t.legal.copyright}</p>
+          <p>{t.legal.disclaimer}</p>
         </div>
       </div>
     </footer>

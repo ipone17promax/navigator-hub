@@ -60,6 +60,7 @@ export interface Dict {
   // === 360 左侧栏 ===
   categories: { title: string; all: string; list: Record<string, string> };
   favorites: { title: string; empty: string };
+  legal: { copyright: string; disclaimer: string };
 }
 
 export const dict: Record<Locale, Dict> = {
@@ -156,6 +157,10 @@ export const dict: Record<Locale, Dict> = {
     },
     categories: { title: "网站分类", all: "全部网站", list: { all: "全部", dev: "开发", design: "设计", study: "学习", life: "生活", ai: "AI", tools: "工具", social: "社交", video: "影音", office: "办公", weather: "气象", search: "搜索" } },
     favorites: { title: "我的收藏", empty: "还没有收藏，点站点卡片 ⭐ 收藏" },
+    legal: {
+      copyright: "© 2026 张柏慈 · Navigator Hub 保留所有权利。未经书面授权，禁止复制、镜像、二次分发或用于商业用途。",
+      disclaimer: "本站仅提供网址索引与跳转，不存储、不代理任何第三方网站内容；各站点名称、图标及商标归其权利人所有。如权利人认为内容侵权，请通过 GitHub 联系作者删除。",
+    },
   },
   en: {
     lang: "English",
@@ -240,6 +245,10 @@ export const dict: Record<Locale, Dict> = {
     },
     categories: { title: "Categories", all: "All Sites", list: { all: "All", dev: "Dev", design: "Design", study: "Study", life: "Life", ai: "AI", tools: "Tools", social: "Social", video: "Video", office: "Office", weather: "Weather", search: "Search" } },
     favorites: { title: "Favorites", empty: "No favorites yet. Tap ⭐ on a site card." },
+    legal: {
+      copyright: "© 2026 Zhang Baici · Navigator Hub. All rights reserved. Unauthorized copying, mirroring, redistribution or commercial use is prohibited.",
+      disclaimer: "This site only indexes and links to third-party websites; it does not host or proxy their content. All site names, icons and trademarks belong to their respective owners. Rights holders may contact the author for removal.",
+    },
   },
 };
 
