@@ -25,8 +25,8 @@ export interface WeatherData {
 
 export type WeatherStatus = "loading" | "ok" | "error";
 
-const POS_KEY = "nh.weather.pos.v1";
-const DATA_KEY = "nh.weather.data.v1";
+const POS_KEY = "nh.weather.pos.v2";
+const DATA_KEY = "nh.weather.data.v2";
 const POS_TTL = 12 * 60 * 60 * 1000;
 const DATA_TTL = 30 * 60 * 1000;
 const DEFAULT_POS = { lat: 39.9075, lon: 116.3972 };
@@ -35,6 +35,7 @@ interface Pos {
   lat: number;
   lon: number;
   at?: number;
+  name?: string;
 }
 
 interface CachedData {
@@ -144,6 +145,31 @@ async function fromIpapiIs(): Promise<Pos> {
   throw new Error("ipapi.is failed");
 }
 
+async function geocodeCity(city: string): Promise<Pos> {
+  const url =
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}` +
+    `&count=1&language=zh&format=json`;
+  const j = await safeJson<{ results?: { latitude: number; longitude: number; name: string }[] }>(url, {
+    timeoutMs: 3500,
+  });
+  const hit = j?.results?.[0];
+  if (hit && Number.isFinite(hit.latitude) && Number.isFinite(hit.longitude) && inChina(hit.latitude, hit.longitude)) {
+    return { lat: hit.latitude, lon: hit.longitude, name: hit.name || city };
+  }
+  throw new Error("geocode failed");
+}
+
+/** ipip.net：国内 IP 库更准，能直接给出省/市；再用 Open-Meteo 地理编码换坐标 */
+async function fromIpip(): Promise<Pos> {
+  const j = await safeJson<{ data?: { location?: string[] } }>("https://myip.ipip.net/json", {
+    timeoutMs: 3500,
+  });
+  const parts = j?.data?.location;
+  const city = Array.isArray(parts) ? parts[2] || parts[1] : "";
+  if (!city) throw new Error("ipip failed");
+  return geocodeCity(String(city));
+}
+
 function firstSuccess<T>(tasks: Promise<T>[]): Promise<T | null> {
   return new Promise((resolve) => {
     let done = false;
@@ -173,13 +199,22 @@ async function locate(): Promise<Pos> {
   const cached = readJson<Pos>(POS_KEY);
   if (cached && cached.at && Date.now() - cached.at < POS_TTL) return cached;
 
-  const timeout = () => new Promise<null>((r) => setTimeout(() => r(null), 4200));
+  const delay = (ms: number) => new Promise<null>((r) => setTimeout(() => r(null), ms));
   const geo = getPos()
     .then((p) => (inChina(p.lat, p.lon) ? p : null))
     .catch(() => null);
-  const ip = firstSuccess([fromIpwho(), fromIpapi(), fromIpinfo(), fromIpapiIs()]);
 
-  const [g, i] = await Promise.all([Promise.race([geo, timeout()]), Promise.race([ip, timeout()])]);
+  const ipTask = (async (): Promise<Pos | null> => {
+    // 国内 ipip 库优先，成功时直接带城市名
+    const ipip = await Promise.race([fromIpip().catch(() => null), delay(3000)]);
+    if (ipip) return ipip;
+    return Promise.race([
+      firstSuccess([fromIpwho(), fromIpapi(), fromIpinfo(), fromIpapiIs()]),
+      delay(1200),
+    ]);
+  })();
+
+  const [g, i] = await Promise.all([Promise.race([geo, delay(4200)]), ipTask]);
   const pos = g || i || DEFAULT_POS;
   writeJson(POS_KEY, { ...pos, at: Date.now() });
   return pos;
@@ -266,8 +301,11 @@ function loadShared(): Promise<WeatherData | null> {
   if (!inflight) {
     inflight = (async () => {
       try {
-        const { lat, lon } = await locate();
-        const [city, w] = await Promise.all([reverseGeocode(lat, lon), fetchWeather(lat, lon)]);
+        const { lat, lon, name } = await locate();
+        const [city, w] = await Promise.all([
+          name ? Promise.resolve(name) : reverseGeocode(lat, lon),
+          fetchWeather(lat, lon),
+        ]);
         const data: WeatherData = { ...w, city };
         memoryData = data;
         writeJson(DATA_KEY, { at: Date.now(), data } satisfies CachedData);
