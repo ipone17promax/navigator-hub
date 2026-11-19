@@ -48,7 +48,10 @@ export interface Dict {
   quickTools: string; toolNames: Record<string, string>;
   newtab: { title: string; step1: string; step2: string };
   // === 360 风格右侧信息栏 ===
-  weather: { title: string; error: string };
+  weather: {
+    title: string; error: string; locating: string; locateFailed: string;
+    setCity: string; cityPlaceholder: string; useGps: string; ipTag: string; manualTag: string;
+  };
   stock: { title: string };
   news: { title: string };
   // === 公共短文案 ===
@@ -131,7 +134,12 @@ export const dict: Record<Locale, Dict> = {
     monthUnit: "年", dayUnit: "月", weekDays: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"],
     quickTools: "快捷工具", toolNames: { storm: "雷暴追踪", binary: "进制转换", morse: "摩斯电码", compass: "罗盘时钟" },
     newtab: { title: "设为新标签页", step1: "1. 复制上面的地址", step2: "2. Chrome / Edge 设置 → 启动时 → 打开特定网页 → 粘贴" },
-    weather: { title: "实时天气", error: "天气获取失败，请检查网络后重试" },
+    weather: {
+      title: "实时天气", error: "天气获取失败，请检查网络后重试",
+      locating: "正在获取你的位置…", locateFailed: "无法获取你的位置",
+      setCity: "手动设置城市", cityPlaceholder: "输入城市名，如 哈尔滨", useGps: "重新定位",
+      ipTag: "IP 定位", manualTag: "手动",
+    },
     stock: { title: "股市行情" },
     news: { title: "新闻速递" },
     common: { refresh: "刷新", pause: "暂停", play: "继续" },
@@ -219,7 +227,12 @@ export const dict: Record<Locale, Dict> = {
     monthUnit: "/", dayUnit: "/", weekDays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     quickTools: "Quick Tools", toolNames: { storm: "Storm Tracker", binary: "Binary Parser", morse: "Morse Code", compass: "Compass Clock" },
     newtab: { title: "Use as New Tab", step1: "1. Copy the URL above", step2: "2. In Chrome/Edge Settings → On startup → Open specific page → Paste" },
-    weather: { title: "Weather", error: "Weather unavailable. Check your connection and retry." },
+    weather: {
+      title: "Weather", error: "Weather unavailable. Check your connection and retry.",
+      locating: "Locating…", locateFailed: "Couldn't get your location",
+      setCity: "Set city", cityPlaceholder: "City name, e.g. Harbin", useGps: "Locate me",
+      ipTag: "IP", manualTag: "Manual",
+    },
     stock: { title: "Stock Market" },
     news: { title: "News Stream" },
     common: { refresh: "Refresh", pause: "Pause", play: "Resume" },

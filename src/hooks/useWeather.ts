@@ -11,6 +11,7 @@ export interface Forecast {
 }
 
 export interface WeatherData {
+  src?: "geo" | "ip" | "manual";
   temp: number;
   condition: string;
   conditionEn: string;
@@ -25,20 +26,20 @@ export interface WeatherData {
 
 export type WeatherStatus = "loading" | "ok" | "error";
 
-const POS_KEY = "nh.weather.pos.v3";
-const DATA_KEY = "nh.weather.data.v3";
+const POS_KEY = "nh.weather.pos.v4";
+const DATA_KEY = "nh.weather.data.v4";
+const MANUAL_KEY = "nh.weather.manual.v1";
 // 浏览器定位更可信，缓存久一些；IP 定位可能随网络环境变化，只缓存 30 分钟
 const POS_TTL_GEO = 12 * 60 * 60 * 1000;
 const POS_TTL_IP = 30 * 60 * 1000;
 const DATA_TTL = 30 * 60 * 1000;
-const DEFAULT_POS = { lat: 39.9075, lon: 116.3972 };
 
 interface Pos {
   lat: number;
   lon: number;
   at?: number;
   name?: string;
-  src?: "geo" | "ip";
+  src?: "geo" | "ip" | "manual";
 }
 
 interface CachedData {
@@ -64,6 +65,12 @@ function writeJson(key: string, value: unknown) {
   } catch {
     /* 隐私模式/配额满时忽略 */
   }
+}
+
+function readManual(): Pos | null {
+  const m = readJson<{ lat: number; lon: number; name?: string }>(MANUAL_KEY);
+  if (!m || !Number.isFinite(m.lat) || !Number.isFinite(m.lon)) return null;
+  return { lat: m.lat, lon: m.lon, name: m.name, src: "manual" };
 }
 
 function wmoToText(code: number, isDay: boolean): { c: string; en: string; icon: string } {
@@ -98,7 +105,7 @@ function getPos(): Promise<Pos> {
     navigator.geolocation.getCurrentPosition(
       (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, src: "geo" }),
       (e) => reject(e),
-      { timeout: 4000, maximumAge: 1800000, enableHighAccuracy: false },
+      { timeout: 12000, maximumAge: 0, enableHighAccuracy: true },
     );
   });
 }
@@ -197,9 +204,12 @@ function firstSuccess<T>(tasks: Promise<T>[]): Promise<T | null> {
  * 定位：缓存坐标 → 浏览器定位与 IP 定位并行，最多等 4.2 秒
  *   - force=true 时跳过期缓存，用于用户点刷新纠正错误定位
  *   - GPS 缓存 12h，IP 缓存 30min（IP 会随网络环境变化）
- *   - 全部失败时使用默认坐标，保证天气能显示
+ *   - 全部失败时返回 null，交给 UI 引导选择城市或重试
  */
-async function locate(force = false): Promise<Pos> {
+async function locate(force = false): Promise<Pos | null> {
+  // 手动指定的城市优先级最高
+  const manual = readManual();
+  if (manual) return manual;
   if (!force) {
     const cached = readJson<Pos>(POS_KEY);
     if (cached && cached.at) {
@@ -223,8 +233,10 @@ async function locate(force = false): Promise<Pos> {
     ]);
   })();
 
-  const [g, i] = await Promise.all([Promise.race([geo, delay(4200)]), ipTask]);
-  const pos = g || i || DEFAULT_POS;
+  // GPS 需要时间等用户点「允许」；给 15 秒，避免弹窗没点完就 fallback 到 IP
+  const [g, i] = await Promise.all([Promise.race([geo, delay(15000)]), ipTask]);
+  const pos = g || i;
+  if (!pos) return null;
   writeJson(POS_KEY, { ...pos, at: Date.now() });
   return pos;
 }
@@ -310,12 +322,14 @@ function loadShared(forceLocate = false): Promise<WeatherData | null> {
   if (!inflight) {
     inflight = (async () => {
       try {
-        const { lat, lon, name } = await locate(forceLocate);
+        const pos = await locate(forceLocate);
+        if (!pos) throw new Error("location unavailable");
+        const { lat, lon, name, src } = pos;
         const [city, w] = await Promise.all([
           name ? Promise.resolve(name) : reverseGeocode(lat, lon),
           fetchWeather(lat, lon),
         ]);
-        const data: WeatherData = { ...w, city };
+        const data: WeatherData = { ...w, city, src };
         memoryData = data;
         writeJson(DATA_KEY, { at: Date.now(), data } satisfies CachedData);
         logger.info("useWeather", "天气获取成功", { city, temp: w.temp });
@@ -361,5 +375,38 @@ export function useWeather() {
     void load();
   }, [load]);
 
-  return { data, status, reload: () => load(true) };
+  /** 手动指定城市：写入本地后立即重新拉取 */
+  const setCity = useCallback(async (city: string) => {
+    const name = city.trim();
+    if (!name) return false;
+    try {
+      const pos = await geocodeCity(name);
+      writeJson(MANUAL_KEY, { lat: pos.lat, lon: pos.lon, name: pos.name || name });
+      memoryData = null;
+      setStatus("loading");
+      const fresh = await loadShared(true);
+      if (fresh) { setData(fresh); setStatus("ok"); return true; }
+    } catch {
+      /* 城市名无效 */
+    }
+    setStatus("error");
+    return false;
+  }, []);
+
+  /** 清除手动城市与位置缓存，重新走真定位 */
+  const relocate = useCallback(async () => {
+    try {
+      localStorage.removeItem(MANUAL_KEY);
+      localStorage.removeItem(POS_KEY);
+    } catch {
+      /* ignore */
+    }
+    memoryData = null;
+    setStatus("loading");
+    const fresh = await loadShared(true);
+    if (fresh) { setData(fresh); setStatus("ok"); }
+    else setStatus("error");
+  }, []);
+
+  return { data, status, reload: () => load(true), setCity, relocate };
 }
