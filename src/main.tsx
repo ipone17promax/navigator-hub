@@ -37,8 +37,9 @@ setTimeout(() => {
   }
 }, 0);
 
-// 注册 Service Worker
-if ("serviceWorker" in navigator && location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+// 注册 Service Worker（仅生产环境；开发环境保留 Vite HMR 缓存行为）
+if (import.meta.env.PROD && "serviceWorker" in navigator &&
+    (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
   window.addEventListener("load", () => {
     const swUrl = import.meta.env.BASE_URL.replace(/\/?$/, "/sw.js");
     navigator.serviceWorker.register(swUrl, { scope: import.meta.env.BASE_URL })

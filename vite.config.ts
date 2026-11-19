@@ -9,17 +9,16 @@ const base = process.env.GITHUB_PAGES === "true" ? "/navigator-hub/" : "/";
 export default defineConfig(({ command }) => ({
   base,
   build: {
-    sourcemap: 'hidden',
+    sourcemap: false,
     // 代码分割优化：按依赖拆分 chunk，利用浏览器并行下载 + 长期缓存
     rollupOptions: {
       output: {
-        manualChunks: {
-          // React 核心 → 独立 chunk（极少变动，完美缓存命中）
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // 图标库 → 独立 chunk（体积大且随版本稳定，单独缓存）
-          'vendor-icons': ['lucide-react'],
-          // 第三方库 → 独立 chunk
-          'vendor-misc': ['zustand', 'clsx'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('react-router')) return 'vendor-router';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('zustand') || id.includes('clsx') || id.includes('tailwind-merge')) return 'vendor-misc';
+          if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
         },
       },
     },

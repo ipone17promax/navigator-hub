@@ -1,15 +1,17 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import * as Icons from "@/lib/iconRegistry";
 import { useI18n } from "@/i18n";
-import CommandPalette from "@/components/CommandPalette";
-import PullToRefresh from "@/components/PullToRefresh";
 import HeaderActions from "@/components/home/HeaderActions";
 import FooterActions from "@/components/home/FooterActions";
 import SearchBlock from "@/components/home/SearchBlock";
 import ContentArea from "@/components/home/ContentArea";
 import ContentCenter from "@/components/home/ContentCenter";
 import FavoritesStrip from "@/components/home/FavoritesStrip";
-import InfoStrip from "@/components/home/InfoStrip";
+
+// 非首屏关键组件按需加载，减小首屏主包体积
+const InfoStrip = lazy(() => import("@/components/home/InfoStrip"));
+const CommandPalette = lazy(() => import("@/components/CommandPalette"));
+const PullToRefresh = lazy(() => import("@/components/PullToRefresh"));
 import { useAppStore } from "@/stores/useAppStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { SITES, CATEGORIES } from "@/config/sites";
@@ -129,14 +131,28 @@ export default function HomePage() {
         <FavoritesStrip />
         <ContentArea />
         <ContentCenter />
-        <InfoStrip />
+        <Suspense fallback={
+          <div className="mx-auto w-full max-w-7xl px-4 pb-6 sm:px-6">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-[150px] animate-pulse rounded-2xl border border-white/10 bg-white/5" />
+              ))}
+            </div>
+          </div>
+        }>
+          <InfoStrip />
+        </Suspense>
         <FooterActions />
       </div>
 
       {/* 全局弹层：命令面板 */}
-      <CommandPalette />
+      <Suspense fallback={null}>
+        <CommandPalette />
+      </Suspense>
       {/* 移动端下拉刷新 */}
-      <PullToRefresh />
+      <Suspense fallback={null}>
+        <PullToRefresh />
+      </Suspense>
     </div>
   );
 }

@@ -25,9 +25,11 @@ export interface WeatherData {
 
 export type WeatherStatus = "loading" | "ok" | "error";
 
-const POS_KEY = "nh.weather.pos.v2";
-const DATA_KEY = "nh.weather.data.v2";
-const POS_TTL = 12 * 60 * 60 * 1000;
+const POS_KEY = "nh.weather.pos.v3";
+const DATA_KEY = "nh.weather.data.v3";
+// 浏览器定位更可信，缓存久一些；IP 定位可能随网络环境变化，只缓存 30 分钟
+const POS_TTL_GEO = 12 * 60 * 60 * 1000;
+const POS_TTL_IP = 30 * 60 * 1000;
 const DATA_TTL = 30 * 60 * 1000;
 const DEFAULT_POS = { lat: 39.9075, lon: 116.3972 };
 
@@ -36,6 +38,7 @@ interface Pos {
   lon: number;
   at?: number;
   name?: string;
+  src?: "geo" | "ip";
 }
 
 interface CachedData {
@@ -93,7 +96,7 @@ function getPos(): Promise<Pos> {
   return new Promise((resolve, reject) => {
     if (!("geolocation" in navigator)) return reject(new Error("no geolocation"));
     navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, src: "geo" }),
       (e) => reject(e),
       { timeout: 4000, maximumAge: 1800000, enableHighAccuracy: false },
     );
@@ -105,34 +108,34 @@ function inChina(lat: number, lon: number): boolean {
 }
 
 async function fromIpwho(): Promise<Pos> {
-  const j = await safeJson<{ success: boolean; latitude?: number; longitude?: number }>(
+  const j = await safeJson<{ success: boolean; latitude?: number; longitude?: number; city?: string }>(
     "https://ipwho.is/?lang=zh",
     { timeoutMs: 3500 },
   );
   if (j && j.success && typeof j.latitude === "number" && typeof j.longitude === "number") {
-    const pos = { lat: j.latitude, lon: j.longitude };
+    const pos = { lat: j.latitude, lon: j.longitude, name: j.city, src: "ip" as const };
     if (inChina(pos.lat, pos.lon)) return pos;
   }
   throw new Error("ipwho failed");
 }
 
 async function fromIpapi(): Promise<Pos> {
-  const j = await safeJson<{ latitude?: number; longitude?: number }>(
+  const j = await safeJson<{ latitude?: number; longitude?: number; city?: string }>(
     "https://ipapi.co/json/",
     { timeoutMs: 3500 },
   );
   if (j && typeof j.latitude === "number" && typeof j.longitude === "number") {
-    const pos = { lat: j.latitude, lon: j.longitude };
+    const pos = { lat: j.latitude, lon: j.longitude, name: j.city, src: "ip" as const };
     if (inChina(pos.lat, pos.lon)) return pos;
   }
   throw new Error("ipapi failed");
 }
 
 async function fromIpinfo(): Promise<Pos> {
-  const j = await safeJson<{ loc?: string }>("https://ipinfo.io/json", { timeoutMs: 3500 });
+  const j = await safeJson<{ loc?: string; city?: string }>("https://ipinfo.io/json", { timeoutMs: 3500 });
   if (j?.loc) {
     const [lat, lon] = j.loc.split(",").map(Number);
-    if (Number.isFinite(lat) && Number.isFinite(lon) && inChina(lat, lon)) return { lat, lon };
+    if (Number.isFinite(lat) && Number.isFinite(lon) && inChina(lat, lon)) return { lat, lon, name: j.city, src: "ip" };
   }
   throw new Error("ipinfo failed");
 }
@@ -154,7 +157,7 @@ async function geocodeCity(city: string): Promise<Pos> {
   });
   const hit = j?.results?.[0];
   if (hit && Number.isFinite(hit.latitude) && Number.isFinite(hit.longitude) && inChina(hit.latitude, hit.longitude)) {
-    return { lat: hit.latitude, lon: hit.longitude, name: hit.name || city };
+    return { lat: hit.latitude, lon: hit.longitude, name: hit.name || city, src: "ip" };
   }
   throw new Error("geocode failed");
 }
@@ -192,12 +195,18 @@ function firstSuccess<T>(tasks: Promise<T>[]): Promise<T | null> {
 
 /**
  * 定位：缓存坐标 → 浏览器定位与 IP 定位并行，最多等 4.2 秒
- *   - 不再串行等待多个失败接口，避免天气卡长时间空白
- *   - 全部失败时直接使用北京，保证天气能显示
+ *   - force=true 时跳过期缓存，用于用户点刷新纠正错误定位
+ *   - GPS 缓存 12h，IP 缓存 30min（IP 会随网络环境变化）
+ *   - 全部失败时使用默认坐标，保证天气能显示
  */
-async function locate(): Promise<Pos> {
-  const cached = readJson<Pos>(POS_KEY);
-  if (cached && cached.at && Date.now() - cached.at < POS_TTL) return cached;
+async function locate(force = false): Promise<Pos> {
+  if (!force) {
+    const cached = readJson<Pos>(POS_KEY);
+    if (cached && cached.at) {
+      const ttl = cached.src === "geo" ? POS_TTL_GEO : POS_TTL_IP;
+      if (Date.now() - cached.at < ttl) return cached;
+    }
+  }
 
   const delay = (ms: number) => new Promise<null>((r) => setTimeout(() => r(null), ms));
   const geo = getPos()
@@ -297,11 +306,11 @@ async function fetchWeather(lat: number, lon: number): Promise<Omit<WeatherData,
 }
 
 /** 同一时刻只发一轮请求，天气卡与顶部迷你天气共用结果 */
-function loadShared(): Promise<WeatherData | null> {
+function loadShared(forceLocate = false): Promise<WeatherData | null> {
   if (!inflight) {
     inflight = (async () => {
       try {
-        const { lat, lon, name } = await locate();
+        const { lat, lon, name } = await locate(forceLocate);
         const [city, w] = await Promise.all([
           name ? Promise.resolve(name) : reverseGeocode(lat, lon),
           fetchWeather(lat, lon),
@@ -339,7 +348,7 @@ export function useWeather() {
       setStatus("loading");
     }
 
-    const fresh = await loadShared();
+    const fresh = await loadShared(force);
     if (fresh) {
       setData(fresh);
       setStatus("ok");

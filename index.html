@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0A0A1A" />
     <meta name="description" content="NavigatorHub - 赛博未来主义高级网址导航中心" />
@@ -124,32 +125,17 @@
     <div id="root"></div>
     <noscript><div id="boot-hint">请启用 JavaScript 以使用 Navigator Hub</div></noscript>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- 后台加速引擎：Service Worker 注册（仅生产环境） -->
+    <!-- 启动骨架兜底：8 秒内 React 仍未挂载（资源加载失败/被拦截）则提示刷新 -->
     <script>
-      if ('serviceWorker' in navigator && location.hostname !== 'localhost') {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker
-            .register('/sw.js', { scope: '/' })
-            .then(function (reg) {
-              console.log('[加速引擎] Service Worker 已激活，后台缓存加速已启用');
-              // 检测到新版本时静默更新
-              reg.addEventListener('updatefound', function () {
-                var newWorker = reg.installing;
-                if (newWorker) {
-                  newWorker.addEventListener('statechange', function () {
-                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                      console.log('[加速引擎] 检测到新版本，已在后台静默更新');
-                      newWorker.postMessage('SKIP_WAITING');
-                    }
-                  });
-                }
-              });
-            })
-            .catch(function (err) {
-              console.warn('[加速引擎] 注册失败（不影响正常使用）:', err);
-            });
-        });
-      }
+      setTimeout(function () {
+        var shell = document.getElementById('boot-shell');
+        var root = document.getElementById('root');
+        if (!shell || (root && root.childElementCount > 0)) return;
+        var tip = document.createElement('div');
+        tip.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:300px;padding:18px 22px;border-radius:14px;border:1px solid var(--bs-line);background:var(--bs-card);color:var(--ink-default,#e5e7eb);font:13px/1.7 system-ui,-apple-system,"Microsoft YaHei",sans-serif;text-align:center';
+        tip.innerHTML = '页面加载较慢或资源加载失败。<br><a href="./" style="color:var(--brand-primary,#22d3ee)">点此刷新重试</a>';
+        shell.appendChild(tip);
+      }, 8000);
     </script>
   </body>
 </html>
