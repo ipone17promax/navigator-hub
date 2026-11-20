@@ -446,3 +446,8 @@ html {
 html[data-elder="true"] {
   zoom: 1.25;
 }
+
+/* 老人模式退出条占位：避免固定按钮遮挡页面底部内容 */
+html[data-elder="true"] #root {
+  padding-bottom: 110px;
+}

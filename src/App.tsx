@@ -5,6 +5,7 @@ import { logger } from "@/lib/logger";
 import { decodeSync } from "@/lib/syncCode";
 import { useAppStore } from "@/stores/useAppStore";
 import { useAuthStore } from "@/stores/useAuthStore";
+import ElderExitBar from "@/components/ElderExitBar";
 import { useUserStore } from "@/stores/useUserStore";
 import { useI18n } from "@/i18n";
 
@@ -86,8 +87,9 @@ export default function App() {
   }, [locale]);
 
   return (
-    <Router>
-      <RouteLogger />
+    <>
+      <Router>
+        <RouteLogger />
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -100,6 +102,8 @@ export default function App() {
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
-    </Router>
+      </Router>
+      <ElderExitBar />
+    </>
   );
 }
