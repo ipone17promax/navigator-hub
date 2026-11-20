@@ -115,7 +115,6 @@ export async function chatWithLocalModel(messages: AiMessage[]): Promise<string>
 export async function chatWithZhipu(messages: AiMessage[], key: string, proxy: string): Promise<string> {
   const endpoint = proxy.trim();
   if (!endpoint) throw new Error("zhipu proxy not configured");
-  if (!key.trim()) throw new Error("zhipu key missing");
   const { signal, done } = withTimeout(45000);
   try {
     const r = await fetch(endpoint, {

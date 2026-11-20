@@ -54,9 +54,8 @@ export default function AiAssistant() {
   useEffect(() => {
     if (!open) return;
     let alive = true;
-    const key = getZhipuKey();
     const proxy = getZhipuProxy();
-    if (key && proxy) {
+    if (proxy) {
       setMode("zhipu");
       setModel("glm-4-flash");
       return;
@@ -96,10 +95,9 @@ export default function AiAssistant() {
   function saveConfig() {
     setZhipuKey(keyDraft);
     setZhipuProxy(proxyDraft);
-    const key = getZhipuKey();
     const proxy = getZhipuProxy();
     setShowConfig(false);
-    if (key && proxy) {
+    if (proxy) {
       setMode("zhipu");
       setModel("glm-4-flash");
     } else {
@@ -247,7 +245,7 @@ export default function AiAssistant() {
             type="password"
             value={keyDraft}
             onChange={(e) => setKeyDraft(e.target.value)}
-            placeholder={zh ? "智谱 API Key" : "Zhipu API key"}
+            placeholder={zh ? "智谱 API Key（Worker 配了 Secret 可留空）" : "Zhipu key (leave empty if Worker has a secret)"}
             className="w-full rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-[11px] text-ink outline-none placeholder:text-ink-subtle focus:border-brand-primary"
           />
           <input
@@ -264,7 +262,7 @@ export default function AiAssistant() {
               {zh ? "保存" : "Save"}
             </button>
             <p className="text-[10px] leading-relaxed text-ink-subtle">
-              {zh ? "与 Key 仅存本机浏览器；智谱官方接口无 CORS，必须走代理。" : "Key and proxy stay in this browser; Zhipu needs a CORS proxy."}
+              {zh ? "Key 与代理地址仅存本机；智谱官方接口无 CORS，必须走代理。" : "Key and proxy stay in this browser; Zhipu needs a CORS proxy."}
             </p>
           </div>
         </div>
