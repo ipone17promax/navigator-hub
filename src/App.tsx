@@ -6,6 +6,7 @@ import { decodeSync } from "@/lib/syncCode";
 import { useAppStore } from "@/stores/useAppStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import ElderExitBar from "@/components/ElderExitBar";
+import AiAssistant from "@/components/AiAssistant";
 import { useUserStore } from "@/stores/useUserStore";
 import { useI18n } from "@/i18n";
 
@@ -104,6 +105,7 @@ export default function App() {
       </Suspense>
       </Router>
       <ElderExitBar />
+      <AiAssistant />
     </>
   );
 }

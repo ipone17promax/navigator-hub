@@ -451,3 +451,9 @@ html[data-elder="true"] {
 html[data-elder="true"] #root {
   padding-bottom: 110px;
 }
+
+/* 老人模式下把 AI 助手抬到退出条上方，避免重叠 */
+html[data-elder="true"] .ai-fab,
+html[data-elder="true"] .ai-panel {
+  bottom: 200px;
+}
