@@ -10,7 +10,8 @@ import { SITES } from "@/config/sites";
 const AI_BASE = "http://127.0.0.1:7860";
 
 const ZHIPU_KEY_STORE = "nh.zhipu.key.v1";
-const ZHIPU_PROXY_STORE = "nh.zhipu.proxy.v1";
+// v2：旧版清空地址会写入 "off"，升级后作废，默认走共享代理
+const ZHIPU_PROXY_STORE = "nh.zhipu.proxy.v2";
 /** 共享代理：使用者无需配置，打开即可用；服务端每 IP 每分钟限流 */
 const DEFAULT_ZHIPU_PROXY = "https://navigator-zhipu-proxy-production.up.railway.app";
 const ZHIPU_PROXY_OFF = "off";

@@ -29,7 +29,7 @@ self.addEventListener("fetch", (event) => {
   // 导航请求：网络优先，离线回退缓存 index.html
   if (req.mode === "navigate") {
     event.respondWith(
-      fetch(req)
+      fetch(req, { cache: "no-store" })
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE_NAME).then((c) => c.put(req, copy));
