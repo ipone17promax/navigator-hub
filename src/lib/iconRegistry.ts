@@ -5,14 +5,16 @@
  * 把整个图标库（约 821KB / gzip 151KB）塞进首屏。改为显式列出项目真正用到的图标，
  * 由打包器按名引入，产物只剩几十 KB。
  *
- * 新增图标时：在这里 import 并加进 ICONS 对象即可（名称需与 lucide-react 一致）。
+ * 由 scripts 一次性瘦身生成；新增图标时：import 并加进 import/export/ICONS 三处即可。
  */
 import type { LucideIcon } from "lucide-react";
 import { Activity } from "lucide-react";
 import { AlertCircle } from "lucide-react";
 import { AlertTriangle } from "lucide-react";
 import { Anchor } from "lucide-react";
+import { ArrowDown } from "lucide-react";
 import { ArrowRight } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { BarChart3 } from "lucide-react";
 import { Bell } from "lucide-react";
 import { Binary } from "lucide-react";
@@ -31,7 +33,6 @@ import { Calendar } from "lucide-react";
 import { Camera } from "lucide-react";
 import { Check } from "lucide-react";
 import { CheckCircle } from "lucide-react";
-import { CheckCircle2 } from "lucide-react";
 import { CheckSquare } from "lucide-react";
 import { ChevronDown } from "lucide-react";
 import { ChevronLeft } from "lucide-react";
@@ -45,6 +46,7 @@ import { CloudDrizzle } from "lucide-react";
 import { CloudFog } from "lucide-react";
 import { CloudHail } from "lucide-react";
 import { CloudLightning } from "lucide-react";
+import { CloudMoon } from "lucide-react";
 import { CloudRain } from "lucide-react";
 import { CloudSnow } from "lucide-react";
 import { CloudSun } from "lucide-react";
@@ -63,7 +65,6 @@ import { Edit3 } from "lucide-react";
 import { ExternalLink } from "lucide-react";
 import { Figma } from "lucide-react";
 import { FileCode2 } from "lucide-react";
-import { FileJson } from "lucide-react";
 import { FileSpreadsheet } from "lucide-react";
 import { FileText } from "lucide-react";
 import { Film } from "lucide-react";
@@ -87,6 +88,7 @@ import { Home } from "lucide-react";
 import { Image } from "lucide-react";
 import { ImagePlus } from "lucide-react";
 import { Inbox } from "lucide-react";
+import { Info } from "lucide-react";
 import { Languages } from "lucide-react";
 import { Laptop } from "lucide-react";
 import { Layers } from "lucide-react";
@@ -111,8 +113,8 @@ import { NotebookPen } from "lucide-react";
 import { Package } from "lucide-react";
 import { Palette } from "lucide-react";
 import { Pause } from "lucide-react";
-import { Pencil } from "lucide-react";
 import { PenTool } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Pickaxe } from "lucide-react";
 import { Play } from "lucide-react";
 import { PlayCircle } from "lucide-react";
@@ -136,7 +138,6 @@ import { ShieldCheck } from "lucide-react";
 import { Sliders } from "lucide-react";
 import { Smile } from "lucide-react";
 import { Sparkles } from "lucide-react";
-import { Square } from "lucide-react";
 import { Star } from "lucide-react";
 import { Sun } from "lucide-react";
 import { Sunset } from "lucide-react";
@@ -165,7 +166,9 @@ export {
   AlertCircle,
   AlertTriangle,
   Anchor,
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   BarChart3,
   Bell,
   Binary,
@@ -184,7 +187,6 @@ export {
   Camera,
   Check,
   CheckCircle,
-  CheckCircle2,
   CheckSquare,
   ChevronDown,
   ChevronLeft,
@@ -198,6 +200,7 @@ export {
   CloudFog,
   CloudHail,
   CloudLightning,
+  CloudMoon,
   CloudRain,
   CloudSnow,
   CloudSun,
@@ -216,7 +219,6 @@ export {
   ExternalLink,
   Figma,
   FileCode2,
-  FileJson,
   FileSpreadsheet,
   FileText,
   Film,
@@ -240,6 +242,7 @@ export {
   Image,
   ImagePlus,
   Inbox,
+  Info,
   Languages,
   Laptop,
   Layers,
@@ -264,8 +267,8 @@ export {
   Package,
   Palette,
   Pause,
-  Pencil,
   PenTool,
+  Pencil,
   Pickaxe,
   Play,
   PlayCircle,
@@ -289,7 +292,6 @@ export {
   Sliders,
   Smile,
   Sparkles,
-  Square,
   Star,
   Sun,
   Sunset,
@@ -316,7 +318,9 @@ export const ICONS = {
   AlertCircle,
   AlertTriangle,
   Anchor,
+  ArrowDown,
   ArrowRight,
+  ArrowUp,
   BarChart3,
   Bell,
   Binary,
@@ -335,7 +339,6 @@ export const ICONS = {
   Camera,
   Check,
   CheckCircle,
-  CheckCircle2,
   CheckSquare,
   ChevronDown,
   ChevronLeft,
@@ -349,6 +352,7 @@ export const ICONS = {
   CloudFog,
   CloudHail,
   CloudLightning,
+  CloudMoon,
   CloudRain,
   CloudSnow,
   CloudSun,
@@ -367,7 +371,6 @@ export const ICONS = {
   ExternalLink,
   Figma,
   FileCode2,
-  FileJson,
   FileSpreadsheet,
   FileText,
   Film,
@@ -391,6 +394,7 @@ export const ICONS = {
   Image,
   ImagePlus,
   Inbox,
+  Info,
   Languages,
   Laptop,
   Layers,
@@ -415,8 +419,8 @@ export const ICONS = {
   Package,
   Palette,
   Pause,
-  Pencil,
   PenTool,
+  Pencil,
   Pickaxe,
   Play,
   PlayCircle,
@@ -440,7 +444,6 @@ export const ICONS = {
   Sliders,
   Smile,
   Sparkles,
-  Square,
   Star,
   Sun,
   Sunset,

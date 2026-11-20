@@ -409,3 +409,35 @@ aside[role="dialog"] {
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--brand-primary) 60%, transparent);
 }
+/* ===== 移动端与可访问性强化 ===== */
+/* 触摸设备：禁用双击缩放误触 */
+@media (pointer: coarse) {
+  button,
+  a,
+  [role="button"],
+  input[type="search"] {
+    touch-action: manipulation;
+  }
+}
+
+/* 键盘导航焦点：仅键盘操作时显示，不影响鼠标点击 */
+:where(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand-primary, #22d3ee);
+  outline-offset: 2px;
+}
+
+/* 系统级「减弱动态效果」 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* iOS Safari 文本尺寸自适应 */
+html {
+  -webkit-text-size-adjust: 100%;
+}
