@@ -37,12 +37,12 @@ export function setZhipuKey(key: string): void {
 export function getZhipuProxy(): string {
   try {
     const raw = localStorage.getItem(ZHIPU_PROXY_STORE);
-    if (raw === ZHIPU_PROXY_OFF) return "";
-    if (raw && raw.trim()) return raw.trim();
-    return DEFAULT_ZHIPU_PROXY;
+    // 忽略历史 "off"/空值：共享代理默认开启，避免本地残留把用户锁在离线模式
+    if (raw && raw.trim() && raw !== ZHIPU_PROXY_OFF) return raw.trim();
   } catch {
-    return DEFAULT_ZHIPU_PROXY;
+    /* ignore */
   }
+  return DEFAULT_ZHIPU_PROXY;
 }
 
 export function setZhipuProxy(proxy: string): void {
