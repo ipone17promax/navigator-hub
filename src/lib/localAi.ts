@@ -11,6 +11,9 @@ const AI_BASE = "http://127.0.0.1:7860";
 
 const ZHIPU_KEY_STORE = "nh.zhipu.key.v1";
 const ZHIPU_PROXY_STORE = "nh.zhipu.proxy.v1";
+/** 共享代理：使用者无需配置，打开即可用；服务端每 IP 每分钟限流 */
+const DEFAULT_ZHIPU_PROXY = "https://navigator-zhipu-proxy-production.up.railway.app";
+const ZHIPU_PROXY_OFF = "off";
 const ZHIPU_MODEL = "glm-4-flash";
 
 export function getZhipuKey(): string {
@@ -32,16 +35,20 @@ export function setZhipuKey(key: string): void {
 
 export function getZhipuProxy(): string {
   try {
-    return localStorage.getItem(ZHIPU_PROXY_STORE) || "";
+    const raw = localStorage.getItem(ZHIPU_PROXY_STORE);
+    if (raw === ZHIPU_PROXY_OFF) return "";
+    if (raw && raw.trim()) return raw.trim();
+    return DEFAULT_ZHIPU_PROXY;
   } catch {
-    return "";
+    return DEFAULT_ZHIPU_PROXY;
   }
 }
 
 export function setZhipuProxy(proxy: string): void {
   try {
-    if (proxy.trim()) localStorage.setItem(ZHIPU_PROXY_STORE, proxy.trim());
-    else localStorage.removeItem(ZHIPU_PROXY_STORE);
+    const v = proxy.trim();
+    // 空值表示主动关闭云端，而不是回落到共享代理
+    localStorage.setItem(ZHIPU_PROXY_STORE, v || ZHIPU_PROXY_OFF);
   } catch {
     /* ignore */
   }

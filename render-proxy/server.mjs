@@ -1,15 +1,18 @@
 import http from "node:http";
 
 /**
- * 智谱 GLM 代理（Render Web Service，零依赖）
+ * 智谱 GLM 代理（Railway Web Service，零依赖）
  * 官方 open.bigmodel.cn 的跨域预检不带 ACAO，浏览器无法直连。
  *
  * 环境变量：
- *   ZHIPU_API_KEY  智谱 API Key（Render 后台配置，勿写入代码）
- *   PORT           Render 自动注入
+ *   ZHIPU_API_KEY           智谱 API Key（Railway 后台配置，勿写入代码）
+ *   RATE_LIMIT_PER_MIN      每 IP 每分钟对话次数上限，默认 20
+ *   PORT                    Railway 自动注入
  */
 
-const PORT = Number(process.env.PORT || 7862);
+const PORT = Number(process.env.PORT || 8000);
+const RATE_LIMIT = Number(process.env.RATE_LIMIT_PER_MIN || 20);
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
@@ -33,6 +36,31 @@ async function readBody(req) {
   return raw;
 }
 
+/* ---------- 简易内存限流（单实例足够） ---------- */
+const buckets = new Map();
+
+function clientIp(req) {
+  const xff = req.headers["x-forwarded-for"];
+  if (typeof xff === "string" && xff.trim()) return xff.split(",")[0].trim();
+  return req.socket.remoteAddress || "unknown";
+}
+
+function allow(ip) {
+  const now = Date.now();
+  if (buckets.size > 5000) {
+    for (const [k, v] of buckets) if (now > v.resetAt) buckets.delete(k);
+  }
+  const b = buckets.get(ip);
+  if (!b || now > b.resetAt) {
+    const resetAt = now + 60_000;
+    buckets.set(ip, { count: 1, resetAt });
+    return { ok: true, resetAt };
+  }
+  if (b.count >= RATE_LIMIT) return { ok: false, resetAt: b.resetAt };
+  b.count++;
+  return { ok: true, resetAt: b.resetAt };
+}
+
 const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, CORS);
@@ -40,19 +68,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 健康检查也是预热入口（Render 免费实例会休眠）
+  // 健康检查与预热，不占用对话配额
   if (req.method === "GET") {
     send(res, 200, {
       ok: true,
       service: "navigator-zhipu-proxy",
       model: "glm-4-flash",
       keyConfigured: Boolean(process.env.ZHIPU_API_KEY),
+      rateLimitPerMin: RATE_LIMIT,
     });
     return;
   }
 
   if (req.method !== "POST") {
     send(res, 405, { error: "method not allowed" });
+    return;
+  }
+
+  const ip = clientIp(req);
+  const rl = allow(ip);
+  if (!rl.ok) {
+    const retryAfter = Math.max(1, Math.ceil((rl.resetAt - Date.now()) / 1000));
+    res.setHeader("Retry-After", String(retryAfter));
+    send(res, 429, { error: "rate limited", retryAfter });
     return;
   }
 
@@ -131,5 +169,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`[zhipu-proxy] listening on ${PORT}`);
+  console.log(`[zhipu-proxy] listening on ${PORT}, rate limit ${RATE_LIMIT}/min per IP`);
 });
