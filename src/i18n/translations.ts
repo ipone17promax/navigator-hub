@@ -15,7 +15,7 @@ export interface Dict {
   engineSwitch: string;
   searchBtn: string;
   hotSearch: string;
-  search: { history: string; clear: string; urlHint: string; bangHint: string };
+  search: { history: string; clear: string; urlHint: string; bangHint: string; localResults: string; localHint: string };
   searchTabs: {
     web: string; image: string; video: string; news: string; map: string; scholar: string;
     openNew: string; loading: string; keyword: string; resultsTitle: string; previewHint: string;
@@ -82,7 +82,7 @@ export const dict: Record<Locale, Dict> = {
     engineSwitch: "切换搜索引擎",
     searchBtn: "搜索",
     hotSearch: "热门搜索",
-    search: { history: "最近搜索", clear: "清空", urlHint: "网址，回车直达", bangHint: "指定引擎" },
+    search: { history: "最近搜索", clear: "清空", urlHint: "网址，回车直达", bangHint: "指定引擎", localResults: "本地站点", localHint: "↑↓ 选择，Enter 打开；直接回车走搜索" },
     searchTabs: {
       web: "网页", image: "图片", video: "视频", news: "资讯", map: "地图", scholar: "学术",
       openNew: "新标签打开",
@@ -185,7 +185,7 @@ export const dict: Record<Locale, Dict> = {
     engineSwitch: "Switch engine",
     searchBtn: "Search",
     hotSearch: "Hot",
-    search: { history: "Recent", clear: "Clear", urlHint: "URL — Enter to open", bangHint: "Engine" },
+    search: { history: "Recent", clear: "Clear", urlHint: "URL — Enter to open", bangHint: "Engine", localResults: "Local sites", localHint: "↑↓ to select, Enter to open; plain Enter searches" },
     searchTabs: {
       web: "Web", image: "Images", video: "Videos", news: "News", map: "Maps", scholar: "Scholar",
       openNew: "Open in new tab",

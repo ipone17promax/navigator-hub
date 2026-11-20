@@ -4,6 +4,8 @@ import { useAppStore } from "@/stores/useAppStore";
 import { SEARCH_ENGINES } from "@/config/sites";
 import { logger } from "@/lib/logger";
 import { useI18n } from "@/i18n";
+import { useUserStore } from "@/stores/useUserStore";
+import { searchSites, categoryLabel, openSiteTarget, type SiteHit } from "@/lib/siteSearch";
 import type { LucideIcon } from "lucide-react";
 
 const icon = (name: string): LucideIcon =>
@@ -61,6 +63,7 @@ export default function SearchHero() {
 
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(-1);
   const [history, setHistory] = useState<string[]>(loadHistory);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -96,6 +99,24 @@ export default function SearchHero() {
       label: activeEngine.name,
     };
   }, [keyword, activeEngine]);
+
+  /** 本地站点建议：bang 与网址输入时不打扰 */
+  const siteHits = useMemo<SiteHit[]>(() => {
+    const q = keyword.trim();
+    if (!q || /^!/.test(q) || looksLikeUrl(q)) return [];
+    return searchSites(q, 6);
+  }, [keyword]);
+
+  const openSite = (site: SiteHit) => {
+    useUserStore.getState().recordVisit({
+      siteId: site.id,
+      siteName: site.name,
+      url: site.url,
+      categoryId: site.category,
+    });
+    logger.info("SearchHero", "open-local-site", { site: site.id });
+    openSiteTarget(site.url);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -226,11 +247,25 @@ export default function SearchHero() {
             ref={inputRef}
             type="search"
             value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
+            onChange={(e) => { setKeyword(e.target.value); setActiveIdx(-1); }}
             onFocus={() => setFocused(true)}
             onBlur={() => window.setTimeout(() => setFocused(false), 120)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") doSearch(keyword);
+              if (e.key === "ArrowDown" && siteHits.length > 0) {
+                e.preventDefault();
+                setActiveIdx((i) => Math.min(siteHits.length - 1, i + 1));
+                return;
+              }
+              if (e.key === "ArrowUp" && siteHits.length > 0) {
+                e.preventDefault();
+                setActiveIdx((i) => Math.max(-1, i - 1));
+                return;
+              }
+              if (e.key === "Enter") {
+                if (activeIdx >= 0 && siteHits[activeIdx]) openSite(siteHits[activeIdx]);
+                else doSearch(keyword);
+                return;
+              }
               if (e.key === "Escape") {
                 (e.target as HTMLInputElement).blur();
               }
@@ -254,6 +289,48 @@ export default function SearchHero() {
           {t.searchBtn}
           <Icons.ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
         </button>
+
+        {/* 本地站点建议：↑↓ 选择，Enter 打开；不改变「直接回车走搜索」的默认行为 */}
+        {focused && siteHits.length > 0 && (
+          <div
+            className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-stroke bg-bg-base/95 p-1.5 shadow-card backdrop-blur-xl animate-fade-in-up"
+            role="listbox"
+            aria-label={t.search.localResults}
+          >
+            {siteHits.map((site, i) => {
+              const I = icon(site.iconName);
+              return (
+                <button
+                  key={site.id}
+                  type="button"
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  onClick={() => openSite(site)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors ${
+                    i === activeIdx ? "bg-white/10 text-ink" : "text-ink-muted hover:bg-white/5 hover:text-ink"
+                  }`}
+                >
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/5"
+                    style={{ color: site.accent }}
+                  >
+                    <I size={15} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-ink">{site.name}</span>
+                    <span className="block truncate text-[11px] text-ink-subtle">{site.description}</span>
+                  </span>
+                  <span className="shrink-0 rounded-full border border-stroke px-2 py-0.5 text-[10px] text-ink-subtle">
+                    {categoryLabel(site.category)}
+                  </span>
+                </button>
+              );
+            })}
+            <div className="px-3 pb-0.5 pt-1 text-[10px] text-ink-subtle">{t.search.localHint}</div>
+          </div>
+        )}
       </div>
 
       {/* 实时解析提示：让「按回车会发生什么」一目了然 */}
