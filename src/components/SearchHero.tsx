@@ -118,6 +118,16 @@ export default function SearchHero() {
     openSiteTarget(site.url);
   };
 
+  /** bang 补全：输入 ! 后给出可用前缀 */
+  const bangSuggest = useMemo(() => {
+    const q = keyword.trim();
+    if (!q.startsWith("!") || q.includes(" ")) return [];
+    const p = q.slice(1).toLowerCase();
+    return Object.entries(BANGS)
+      .filter(([k]) => p === "" || k.startsWith(p))
+      .slice(0, 8);
+  }, [keyword]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "/" && document.activeElement?.tagName !== "INPUT") {
@@ -354,6 +364,26 @@ export default function SearchHero() {
               {resolved.label}
             </span>
           )}
+        </div>
+      )}
+
+      {/* bang 补全：点击自动补全前缀与空格 */}
+      {focused && bangSuggest.length > 0 && (
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2 animate-fade-in">
+          {bangSuggest.map(([key, b]) => (
+            <button
+              key={key}
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setKeyword("!" + key + " ");
+                inputRef.current?.focus();
+              }}
+              className="rounded-full border border-stroke bg-bg-elevate/50 px-3 py-1 text-xs text-ink-muted transition-colors hover:border-stroke-hover hover:text-ink"
+            >
+              <span className="font-mono">!{key}</span> · {b.name}
+            </button>
+          ))}
         </div>
       )}
 

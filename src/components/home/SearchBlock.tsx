@@ -4,6 +4,7 @@ import SearchHero from "@/components/SearchHero";
 import SearchTabs from "@/components/SearchTabs";
 import { HighFreqBar } from "@/components/HealthAndFreq";
 import QuickTools from "@/components/QuickTools";
+import HotBoard from "@/components/home/HotBoard";
 import IntroGuide from "@/components/home/IntroGuide";
 
 /**
@@ -34,6 +35,7 @@ export default function SearchBlock() {
         </div>
         <IntroGuide />
         <HighFreqBar />
+        <HotBoard />
         <QuickTools />
       </div>
     </section>
