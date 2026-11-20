@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: navigator-zhipu-proxy
+    runtime: node
+    plan: free
+    rootDir: render-proxy
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: ZHIPU_API_KEY
+        sync: false
