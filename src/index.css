@@ -441,3 +441,8 @@ aside[role="dialog"] {
 html {
   -webkit-text-size-adjust: 100%;
 }
+
+/* 关爱老人模式：整体放大 12%，字号与点击区域一起变大 */
+html[data-elder="true"] {
+  zoom: 1.12;
+}

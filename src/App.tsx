@@ -3,6 +3,7 @@ import { HashRouter as Router, Routes, Route, useLocation } from "react-router-d
 import HomePage from "@/pages/HomePage";
 import { logger } from "@/lib/logger";
 import { decodeSync } from "@/lib/syncCode";
+import { useAppStore } from "@/stores/useAppStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useUserStore } from "@/stores/useUserStore";
 import { useI18n } from "@/i18n";
@@ -54,10 +55,16 @@ function NotFound() {
 
 export default function App() {
   const initAuth = useAuthStore((s) => s.init);
+  const elderlyMode = useAppStore((s) => s.elderlyMode);
   const { locale } = useI18n();
   useEffect(() => {
     void initAuth();
   }, [initAuth]);
+
+  // 关爱老人模式：把状态同步到 <html>，由 CSS 统一放大字号与点击区域
+  useEffect(() => {
+    document.documentElement.dataset.elder = elderlyMode ? "true" : "false";
+  }, [elderlyMode]);
 
   // 跨端同步：链接里带 ?sync= 时提示导入
   useEffect(() => {
