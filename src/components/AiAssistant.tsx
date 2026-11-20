@@ -4,11 +4,13 @@ import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/useAppStore";
 import {
   chatWithLocalModel,
-  chatWithQwen,
+  chatWithZhipu,
   checkLocalModel,
-  getQwenKey,
+  getZhipuKey,
+  getZhipuProxy,
   offlineReply,
-  setQwenKey,
+  setZhipuKey,
+  setZhipuProxy,
   type AiMessage,
   type AiReply,
 } from "@/lib/localAi";
@@ -19,11 +21,11 @@ type ChatMsg = {
   links?: { label: string; url: string }[];
 };
 
-type Mode = "checking" | "qwen" | "local" | "offline";
+type Mode = "checking" | "zhipu" | "local" | "offline";
 
 /**
  * AI 助手（三模）
- * 1) 云端千问：填写 DashScope Key 后直连（浏览器 CORS 已验证可用）
+ * 1) 云端智谱 GLM：经自建 Worker 代理（官方接口无 CORS）
  * 2) 本地模型：ai_server.py 的 Qwen2-0.5B + LoRA
  * 3) 离线知识库：不联网的规则应答
  */
@@ -33,14 +35,15 @@ export default function AiAssistant() {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("checking");
   const [model, setModel] = useState("");
-  const [showKey, setShowKey] = useState(false);
-  const [keyDraft, setKeyDraft] = useState(getQwenKey());
+  const [showConfig, setShowConfig] = useState(false);
+  const [keyDraft, setKeyDraft] = useState(getZhipuKey());
+  const [proxyDraft, setProxyDraft] = useState(getZhipuProxy());
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
       content: zh
-        ? "你好，我是 NavigatorHub 的 AI 助手。开启云端千问、本地模型或离线知识库后，可以帮你找站点、打开工具、查天气、切换主题和老人模式。"
-        : "Hi, I'm NavigatorHub's assistant. With Qwen cloud, local model or offline base, I can find sites, open tools, show weather and switch settings.",
+        ? "你好，我是 NavigatorHub 的 AI 助手。配置智谱代理后使用云端 GLM，本机服务在线时用本地 Qwen，都不可用时走离线知识库。"
+        : "Hi, I'm NavigatorHub's assistant. It uses Zhipu GLM via proxy, a local Qwen model, or the offline knowledge base.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -51,10 +54,11 @@ export default function AiAssistant() {
   useEffect(() => {
     if (!open) return;
     let alive = true;
-    const key = getQwenKey();
-    if (key) {
-      setMode("qwen");
-      setModel("qwen-turbo");
+    const key = getZhipuKey();
+    const proxy = getZhipuProxy();
+    if (key && proxy) {
+      setMode("zhipu");
+      setModel("glm-4-flash");
       return;
     }
     setMode("checking");
@@ -89,14 +93,15 @@ export default function AiAssistant() {
     if (open) window.setTimeout(() => inputRef.current?.focus(), 80);
   }, [open]);
 
-  function saveKey(next: string) {
-    setQwenKey(next);
-    setKeyDraft(next);
-    const key = getQwenKey();
-    setShowKey(false);
-    if (key) {
-      setMode("qwen");
-      setModel("qwen-turbo");
+  function saveConfig() {
+    setZhipuKey(keyDraft);
+    setZhipuProxy(proxyDraft);
+    const key = getZhipuKey();
+    const proxy = getZhipuProxy();
+    setShowConfig(false);
+    if (key && proxy) {
+      setMode("zhipu");
+      setModel("glm-4-flash");
     } else {
       setMode("offline");
       setModel("");
@@ -116,17 +121,20 @@ export default function AiAssistant() {
         { role: "user", content },
       ];
 
-      if (mode === "qwen") {
+      if (mode === "zhipu") {
         try {
-          const r = await chatWithQwen(history, getQwenKey());
-          reply = { text: r, source: "qwen" };
-        } catch (e) {
+          const r = await chatWithZhipu(history, getZhipuKey(), getZhipuProxy());
+          reply = { text: r, source: "zhipu" };
+        } catch {
           reply = offlineReply(content, { locale: zh ? "zh" : "en" });
-          reply.text = (zh ? "云端千问连接失败，已切换离线模式。" : "Qwen cloud failed, switched to offline.") +
-            "\n" + reply.text;
+          reply.text =
+            (zh
+              ? "智谱云端连接失败（检查代理地址与 Key），已切换离线模式。"
+              : "Zhipu cloud failed (check proxy and key), switched to offline.") +
+            "\n" +
+            reply.text;
           setMode("offline");
           setModel("");
-          void e;
         }
       } else if (mode === "local") {
         try {
@@ -157,10 +165,10 @@ export default function AiAssistant() {
   }
 
   const statusText =
-    mode === "qwen"
+    mode === "zhipu"
       ? zh
-        ? `云端千问 · ${model || "qwen-turbo"}`
-        : `Qwen cloud · ${model || "qwen-turbo"}`
+        ? `云端智谱 · ${model || "glm-4-flash"}`
+        : `Zhipu GLM · ${model || "glm-4-flash"}`
       : mode === "local"
         ? zh
           ? `本地模型已连接${model ? " · " + model : ""}`
@@ -173,7 +181,7 @@ export default function AiAssistant() {
             ? "检测可用模型…"
             : "Checking model…";
   const statusColor =
-    mode === "qwen"
+    mode === "zhipu"
       ? "bg-fuchsia-400"
       : mode === "local"
         ? "bg-emerald-400"
@@ -207,9 +215,7 @@ export default function AiAssistant() {
             <Icons.Sparkles size={14} />
           </span>
           <div>
-            <div className="text-[13px] font-semibold text-ink">
-              {zh ? "Navigator AI" : "Navigator AI"}
-            </div>
+            <div className="text-[13px] font-semibold text-ink">Navigator AI</div>
             <div className="flex items-center gap-1 text-[10px] text-ink-subtle">
               <span className={`h-1.5 w-1.5 rounded-full ${statusColor}`} />
               {statusText}
@@ -218,10 +224,10 @@ export default function AiAssistant() {
         </div>
         <div className="flex items-center gap-1">
           <button
-            onClick={() => setShowKey((v) => !v)}
-            className={`rounded-lg p-1.5 transition-colors hover:bg-white/5 ${showKey ? "text-amber-300" : "text-ink-muted hover:text-ink"}`}
-            title={zh ? "设置云端千问 API Key" : "Set Qwen API key"}
-            aria-label={zh ? "设置云端千问 API Key" : "Set Qwen API key"}
+            onClick={() => setShowConfig((v) => !v)}
+            className={`rounded-lg p-1.5 transition-colors hover:bg-white/5 ${showConfig ? "text-amber-300" : "text-ink-muted hover:text-ink"}`}
+            title={zh ? "配置智谱云端" : "Configure Zhipu cloud"}
+            aria-label={zh ? "配置智谱云端" : "Configure Zhipu cloud"}
           >
             <Icons.Lock size={14} />
           </button>
@@ -235,28 +241,32 @@ export default function AiAssistant() {
         </div>
       </div>
 
-      {showKey && (
-        <div className="border-b border-stroke bg-white/[0.03] px-3.5 py-2.5">
+      {showConfig && (
+        <div className="space-y-2 border-b border-stroke bg-white/[0.03] px-3.5 py-2.5">
+          <input
+            type="password"
+            value={keyDraft}
+            onChange={(e) => setKeyDraft(e.target.value)}
+            placeholder={zh ? "智谱 API Key" : "Zhipu API key"}
+            className="w-full rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-[11px] text-ink outline-none placeholder:text-ink-subtle focus:border-brand-primary"
+          />
+          <input
+            value={proxyDraft}
+            onChange={(e) => setProxyDraft(e.target.value)}
+            placeholder={zh ? "Worker 代理地址（https://xxx.workers.dev）" : "Worker proxy URL (https://xxx.workers.dev)"}
+            className="w-full rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-[11px] text-ink outline-none placeholder:text-ink-subtle focus:border-brand-primary"
+          />
           <div className="flex items-center gap-2">
-            <input
-              type="password"
-              value={keyDraft}
-              onChange={(e) => setKeyDraft(e.target.value)}
-              placeholder={zh ? "DashScope API Key（sk-…）" : "DashScope API key (sk-…)"}
-              className="min-w-0 flex-1 rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-[11px] text-ink outline-none placeholder:text-ink-subtle focus:border-brand-primary"
-            />
             <button
-              onClick={() => saveKey(keyDraft)}
+              onClick={saveConfig}
               className="rounded-lg border border-stroke px-2.5 py-1.5 text-[11px] text-ink transition-colors hover:bg-white/5"
             >
               {zh ? "保存" : "Save"}
             </button>
+            <p className="text-[10px] leading-relaxed text-ink-subtle">
+              {zh ? "与 Key 仅存本机浏览器；智谱官方接口无 CORS，必须走代理。" : "Key and proxy stay in this browser; Zhipu needs a CORS proxy."}
+            </p>
           </div>
-          <p className="mt-1.5 text-[10px] leading-relaxed text-ink-subtle">
-            {zh
-              ? "Key 只保存在本机浏览器，不会上传到任何服务器。清空后保存即可关闭云端模式。"
-              : "The key stays in this browser only. Clear and save to disable cloud mode."}
-          </p>
         </div>
       )}
 

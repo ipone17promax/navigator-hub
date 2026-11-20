@@ -1,29 +1,47 @@
 import { SITES } from "@/config/sites";
 
 /**
- * 本地 AI：优先连接 ai_server.py（Qwen2-0.5B + LoRA，127.0.0.1:7860）
- * 连接不上时回退到纯前端离线知识库，不访问任何云端 API
+ * AI 助手数据层
+ * - 云端：智谱 GLM（经 Cloudflare Worker 代理，官方接口无 CORS）
+ * - 本地：ai_server.py 的 Qwen2-0.5B + LoRA（127.0.0.1:7860）
+ * - 离线：纯前端知识库，不联网
  */
 
 const AI_BASE = "http://127.0.0.1:7860";
 
-/** 云端千问（DashScope OpenAI 兼容接口，支持浏览器 CORS） */
-const QWEN_KEY_STORE = "nh.qwen.key.v1";
-const QWEN_ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
-const QWEN_MODEL = "qwen-turbo";
+const ZHIPU_KEY_STORE = "nh.zhipu.key.v1";
+const ZHIPU_PROXY_STORE = "nh.zhipu.proxy.v1";
+const ZHIPU_MODEL = "glm-4-flash";
 
-export function getQwenKey(): string {
+export function getZhipuKey(): string {
   try {
-    return localStorage.getItem(QWEN_KEY_STORE) || "";
+    return localStorage.getItem(ZHIPU_KEY_STORE) || "";
   } catch {
     return "";
   }
 }
 
-export function setQwenKey(key: string): void {
+export function setZhipuKey(key: string): void {
   try {
-    if (key.trim()) localStorage.setItem(QWEN_KEY_STORE, key.trim());
-    else localStorage.removeItem(QWEN_KEY_STORE);
+    if (key.trim()) localStorage.setItem(ZHIPU_KEY_STORE, key.trim());
+    else localStorage.removeItem(ZHIPU_KEY_STORE);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getZhipuProxy(): string {
+  try {
+    return localStorage.getItem(ZHIPU_PROXY_STORE) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setZhipuProxy(proxy: string): void {
+  try {
+    if (proxy.trim()) localStorage.setItem(ZHIPU_PROXY_STORE, proxy.trim());
+    else localStorage.removeItem(ZHIPU_PROXY_STORE);
   } catch {
     /* ignore */
   }
@@ -38,7 +56,7 @@ export interface AiReply {
   text: string;
   links?: { label: string; url: string }[];
   action?: "elder" | "theme";
-  source: "qwen" | "local-model" | "offline";
+  source: "zhipu" | "local-model" | "offline";
 }
 
 export interface ModelHealth {
@@ -90,44 +108,30 @@ export async function chatWithLocalModel(messages: AiMessage[]): Promise<string>
   }
 }
 
-export async function chatWithQwen(messages: AiMessage[], key: string): Promise<string> {
+/**
+ * 智谱云端对话（经自建 Worker 代理）
+ * 官方 open.bigmodel.cn 的 OPTIONS 预检不带 ACAO，浏览器不能直连
+ */
+export async function chatWithZhipu(messages: AiMessage[], key: string, proxy: string): Promise<string> {
+  const endpoint = proxy.trim();
+  if (!endpoint) throw new Error("zhipu proxy not configured");
+  if (!key.trim()) throw new Error("zhipu key missing");
   const { signal, done } = withTimeout(45000);
   try {
-    const r = await fetch(QWEN_ENDPOINT, {
+    const r = await fetch(endpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${key}`,
-      },
-      body: JSON.stringify({
-        model: QWEN_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "你是 NavigatorHub 导航站的 AI 助手，回答简洁、诚实，使用中文。不要冒充其他厂商产品。",
-          },
-          ...messages,
-        ],
-        max_tokens: 512,
-        temperature: 0.7,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key.trim(), model: ZHIPU_MODEL, messages }),
       signal,
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      const msg =
-        (err as { error?: { message?: string }; message?: string })?.error?.message ||
-        (err as { message?: string })?.message ||
-        `HTTP ${r.status}`;
-      throw new Error(msg);
+      throw new Error((err as { error?: string }).error || `HTTP ${r.status}`);
     }
-    const j = (await r.json()) as {
-      choices?: { message?: { content?: string } }[];
-    };
-    const text = j.choices?.[0]?.message?.content;
-    if (typeof text !== "string" || !text.trim()) throw new Error("empty reply");
-    return text.trim();
+    const j = (await r.json()) as { reply?: string; error?: string };
+    if (j.error) throw new Error(j.error);
+    if (!j.reply) throw new Error("empty reply");
+    return j.reply;
   } finally {
     done();
   }
@@ -218,7 +222,7 @@ export function offlineReply(input: string, opts: { locale: "zh" | "en" }): AiRe
   if (/^(你好|您好|hi|hello|在吗|嗨)/.test(q)) {
     return {
       text: zh
-        ? "你好，我在。我是导航站的本地 AI 助手，可以帮你找站点、打开工具、查天气、切换主题或开启老人模式。"
+        ? "你好，我在。我是导航站的 AI 助手，可以帮你找站点、打开工具、查天气、切换主题或开启老人模式。"
         : "Hi! I can find sites, open tools, check weather, switch themes or enable elder mode.",
       source: "offline",
     };
@@ -227,8 +231,8 @@ export function offlineReply(input: string, opts: { locale: "zh" | "en" }): AiRe
   if (/你是谁|介绍.*自己|who are you|your name/.test(q)) {
     return {
       text: zh
-        ? "我是 NavigatorHub 的本地 AI 助手。本机模型在线时使用 Qwen2-0.5B + LoRA 推理；离线时用内置知识库应答，不调用任何云端 API。"
-        : "I'm NavigatorHub's local assistant. It uses a local Qwen2-0.5B + LoRA model when available, otherwise an offline knowledge base. No cloud API.",
+        ? "我是 NavigatorHub 的 AI 助手。配置智谱代理后使用云端 GLM；本机服务在线时使用 Qwen2-0.5B + LoRA；都不可用时走内置知识库，不调用云端 API。"
+        : "I'm NavigatorHub's assistant. It uses Zhipu GLM via proxy when configured, a local Qwen2-0.5B model when available, otherwise an offline knowledge base.",
       source: "offline",
     };
   }
@@ -278,7 +282,7 @@ export function offlineReply(input: string, opts: { locale: "zh" | "en" }): AiRe
     return { text: zh ? "已为你切换主题。" : "Theme switched.", action: "theme", source: "offline" };
   }
 
-  if (/快捷键|快捷键|shortcut|键盘|command/.test(q)) {
+  if (/快捷键|shortcut|键盘|command/.test(q)) {
     return {
       text: zh
         ? "常用快捷键：/ 聚焦搜索；Ctrl/Cmd+K 打开命令面板；1-9 打开收藏站点；L 切换语言；T 切换主题。"
@@ -339,7 +343,7 @@ export function offlineReply(input: string, opts: { locale: "zh" | "en" }): AiRe
 
   return {
     text: zh
-      ? "我是本地助手，暂时没听懂。可以试试：「推荐 AI 网站」「打开知乎」「今天天气」「二维码工具」「切换主题」「老人模式」。"
+      ? "我是 AI 助手，暂时没听懂。可以试试：「推荐 AI 网站」「打开知乎」「今天天气」「二维码工具」「切换主题」「老人模式」。"
       : "I didn't catch that. Try: “AI sites”, “open Zhihu”, “weather”, “QR tool”, “theme”, “elder mode”.",
     source: "offline",
   };

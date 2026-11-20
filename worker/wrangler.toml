@@ -1,0 +1,3 @@
+name = "navigator-zhipu-proxy"
+main = "zhipu-proxy.js"
+compatibility_date = "2026-11-20"
