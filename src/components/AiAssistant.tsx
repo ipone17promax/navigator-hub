@@ -3,9 +3,12 @@ import * as Icons from "@/lib/iconRegistry";
 import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/useAppStore";
 import {
-  checkLocalModel,
   chatWithLocalModel,
+  chatWithQwen,
+  checkLocalModel,
+  getQwenKey,
   offlineReply,
+  setQwenKey,
   type AiMessage,
   type AiReply,
 } from "@/lib/localAi";
@@ -16,23 +19,28 @@ type ChatMsg = {
   links?: { label: string; url: string }[];
 };
 
+type Mode = "checking" | "qwen" | "local" | "offline";
+
 /**
- * 本地 AI 助手（不接云端 API）
- * - 本机 ai_server.py 在线：走 Qwen2-0.5B + LoRA
- * - 离线 / HTTPS 混合内容被拦：自动回退内置知识库应答
+ * AI 助手（三模）
+ * 1) 云端千问：填写 DashScope Key 后直连（浏览器 CORS 已验证可用）
+ * 2) 本地模型：ai_server.py 的 Qwen2-0.5B + LoRA
+ * 3) 离线知识库：不联网的规则应答
  */
 export default function AiAssistant() {
   const { locale, toggleTheme } = useI18n();
   const zh = locale === "zh";
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"checking" | "local" | "offline">("checking");
+  const [mode, setMode] = useState<Mode>("checking");
   const [model, setModel] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [keyDraft, setKeyDraft] = useState(getQwenKey());
   const [messages, setMessages] = useState<ChatMsg[]>([
     {
       role: "assistant",
       content: zh
-        ? "你好，我是 NavigatorHub 的本地 AI 助手。可以帮你找站点、打开工具、查天气、切换主题或开启老人模式，不调用云端 API。"
-        : "Hi, I'm NavigatorHub's local assistant. I can find sites, open tools, show weather, switch theme or elder mode. No cloud API.",
+        ? "你好，我是 NavigatorHub 的 AI 助手。开启云端千问、本地模型或离线知识库后，可以帮你找站点、打开工具、查天气、切换主题和老人模式。"
+        : "Hi, I'm NavigatorHub's assistant. With Qwen cloud, local model or offline base, I can find sites, open tools, show weather and switch settings.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -43,6 +51,12 @@ export default function AiAssistant() {
   useEffect(() => {
     if (!open) return;
     let alive = true;
+    const key = getQwenKey();
+    if (key) {
+      setMode("qwen");
+      setModel("qwen-turbo");
+      return;
+    }
     setMode("checking");
     void checkLocalModel().then((r) => {
       if (!alive) return;
@@ -75,6 +89,20 @@ export default function AiAssistant() {
     if (open) window.setTimeout(() => inputRef.current?.focus(), 80);
   }, [open]);
 
+  function saveKey(next: string) {
+    setQwenKey(next);
+    setKeyDraft(next);
+    const key = getQwenKey();
+    setShowKey(false);
+    if (key) {
+      setMode("qwen");
+      setModel("qwen-turbo");
+    } else {
+      setMode("offline");
+      setModel("");
+    }
+  }
+
   async function send(text?: string) {
     const content = (text ?? input).trim();
     if (!content || busy) return;
@@ -83,12 +111,25 @@ export default function AiAssistant() {
     setBusy(true);
     try {
       let reply: AiReply;
-      if (mode === "local") {
+      const history: AiMessage[] = [
+        ...messages.map((m): AiMessage => ({ role: m.role, content: m.content })),
+        { role: "user", content },
+      ];
+
+      if (mode === "qwen") {
         try {
-          const history: AiMessage[] = [
-            ...messages.map((m): AiMessage => ({ role: m.role, content: m.content })),
-            { role: "user", content },
-          ];
+          const r = await chatWithQwen(history, getQwenKey());
+          reply = { text: r, source: "qwen" };
+        } catch (e) {
+          reply = offlineReply(content, { locale: zh ? "zh" : "en" });
+          reply.text = (zh ? "云端千问连接失败，已切换离线模式。" : "Qwen cloud failed, switched to offline.") +
+            "\n" + reply.text;
+          setMode("offline");
+          setModel("");
+          void e;
+        }
+      } else if (mode === "local") {
+        try {
           const r = await chatWithLocalModel(history);
           reply = { text: r, source: "local-model" };
         } catch {
@@ -98,6 +139,7 @@ export default function AiAssistant() {
       } else {
         reply = offlineReply(content, { locale: zh ? "zh" : "en" });
       }
+
       if (reply.action === "elder") useAppStore.getState().toggleElderlyMode();
       if (reply.action === "theme") toggleTheme();
       setMessages((m) => [...m, { role: "assistant", content: reply.text, links: reply.links }]);
@@ -115,18 +157,29 @@ export default function AiAssistant() {
   }
 
   const statusText =
-    mode === "local"
+    mode === "qwen"
       ? zh
-        ? `本地模型已连接${model ? " · " + model : ""}`
-        : `Local model · ${model}`
-      : mode === "offline"
+        ? `云端千问 · ${model || "qwen-turbo"}`
+        : `Qwen cloud · ${model || "qwen-turbo"}`
+      : mode === "local"
         ? zh
-          ? "离线知识库模式"
-          : "Offline knowledge base"
-        : zh
-          ? "检测本地模型…"
-          : "Checking local model…";
-  const statusColor = mode === "local" ? "bg-emerald-400" : mode === "offline" ? "bg-sky-400" : "bg-amber-400";
+          ? `本地模型已连接${model ? " · " + model : ""}`
+          : `Local model · ${model}`
+        : mode === "offline"
+          ? zh
+            ? "离线知识库模式"
+            : "Offline knowledge base"
+          : zh
+            ? "检测可用模型…"
+            : "Checking model…";
+  const statusColor =
+    mode === "qwen"
+      ? "bg-fuchsia-400"
+      : mode === "local"
+        ? "bg-emerald-400"
+        : mode === "offline"
+          ? "bg-sky-400"
+          : "bg-amber-400";
 
   const quick = zh
     ? ["推荐 AI 网站", "打开二维码工具", "今天天气", "快捷键"]
@@ -137,11 +190,11 @@ export default function AiAssistant() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={zh ? "打开本地 AI 助手" : "Open local AI assistant"}
+        aria-label={zh ? "打开 AI 助手" : "Open AI assistant"}
         className="ai-fab fixed bottom-24 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-brand-gradient text-white shadow-glow transition-transform hover:-translate-y-0.5 active:scale-95"
       >
         <Icons.Sparkles size={20} />
-        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg-base bg-emerald-400" />
+        <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-bg-base ${statusColor}`} />
       </button>
     );
   }
@@ -155,7 +208,7 @@ export default function AiAssistant() {
           </span>
           <div>
             <div className="text-[13px] font-semibold text-ink">
-              {zh ? "Navigator AI · 本地" : "Navigator AI · Local"}
+              {zh ? "Navigator AI" : "Navigator AI"}
             </div>
             <div className="flex items-center gap-1 text-[10px] text-ink-subtle">
               <span className={`h-1.5 w-1.5 rounded-full ${statusColor}`} />
@@ -163,14 +216,49 @@ export default function AiAssistant() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setOpen(false)}
-          className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-          aria-label={zh ? "关闭" : "Close"}
-        >
-          <Icons.X size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setShowKey((v) => !v)}
+            className={`rounded-lg p-1.5 transition-colors hover:bg-white/5 ${showKey ? "text-amber-300" : "text-ink-muted hover:text-ink"}`}
+            title={zh ? "设置云端千问 API Key" : "Set Qwen API key"}
+            aria-label={zh ? "设置云端千问 API Key" : "Set Qwen API key"}
+          >
+            <Icons.Lock size={14} />
+          </button>
+          <button
+            onClick={() => setOpen(false)}
+            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            aria-label={zh ? "关闭" : "Close"}
+          >
+            <Icons.X size={14} />
+          </button>
+        </div>
       </div>
+
+      {showKey && (
+        <div className="border-b border-stroke bg-white/[0.03] px-3.5 py-2.5">
+          <div className="flex items-center gap-2">
+            <input
+              type="password"
+              value={keyDraft}
+              onChange={(e) => setKeyDraft(e.target.value)}
+              placeholder={zh ? "DashScope API Key（sk-…）" : "DashScope API key (sk-…)"}
+              className="min-w-0 flex-1 rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-[11px] text-ink outline-none placeholder:text-ink-subtle focus:border-brand-primary"
+            />
+            <button
+              onClick={() => saveKey(keyDraft)}
+              className="rounded-lg border border-stroke px-2.5 py-1.5 text-[11px] text-ink transition-colors hover:bg-white/5"
+            >
+              {zh ? "保存" : "Save"}
+            </button>
+          </div>
+          <p className="mt-1.5 text-[10px] leading-relaxed text-ink-subtle">
+            {zh
+              ? "Key 只保存在本机浏览器，不会上传到任何服务器。清空后保存即可关闭云端模式。"
+              : "The key stays in this browser only. Clear and save to disable cloud mode."}
+          </p>
+        </div>
+      )}
 
       <div className="flex-1 space-y-2 overflow-y-auto px-3 py-3">
         {messages.map((m, i) => (
@@ -233,7 +321,7 @@ export default function AiAssistant() {
                 void send();
               }
             }}
-            placeholder={zh ? "问点什么…（不联网）" : "Ask anything… (offline)"}
+            placeholder={zh ? "问点什么…" : "Ask anything…"}
             className="min-w-0 flex-1 bg-transparent px-1.5 py-1 text-[12px] text-ink outline-none placeholder:text-ink-subtle"
           />
           <button

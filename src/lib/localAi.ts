@@ -7,6 +7,28 @@ import { SITES } from "@/config/sites";
 
 const AI_BASE = "http://127.0.0.1:7860";
 
+/** 云端千问（DashScope OpenAI 兼容接口，支持浏览器 CORS） */
+const QWEN_KEY_STORE = "nh.qwen.key.v1";
+const QWEN_ENDPOINT = "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions";
+const QWEN_MODEL = "qwen-turbo";
+
+export function getQwenKey(): string {
+  try {
+    return localStorage.getItem(QWEN_KEY_STORE) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setQwenKey(key: string): void {
+  try {
+    if (key.trim()) localStorage.setItem(QWEN_KEY_STORE, key.trim());
+    else localStorage.removeItem(QWEN_KEY_STORE);
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface AiMessage {
   role: "user" | "assistant";
   content: string;
@@ -16,7 +38,7 @@ export interface AiReply {
   text: string;
   links?: { label: string; url: string }[];
   action?: "elder" | "theme";
-  source: "local-model" | "offline";
+  source: "qwen" | "local-model" | "offline";
 }
 
 export interface ModelHealth {
@@ -63,6 +85,49 @@ export async function chatWithLocalModel(messages: AiMessage[]): Promise<string>
     const j = (await r.json()) as { reply?: string };
     if (!j.reply) throw new Error("empty reply");
     return j.reply;
+  } finally {
+    done();
+  }
+}
+
+export async function chatWithQwen(messages: AiMessage[], key: string): Promise<string> {
+  const { signal, done } = withTimeout(45000);
+  try {
+    const r = await fetch(QWEN_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+      },
+      body: JSON.stringify({
+        model: QWEN_MODEL,
+        messages: [
+          {
+            role: "system",
+            content:
+              "你是 NavigatorHub 导航站的 AI 助手，回答简洁、诚实，使用中文。不要冒充其他厂商产品。",
+          },
+          ...messages,
+        ],
+        max_tokens: 512,
+        temperature: 0.7,
+      }),
+      signal,
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      const msg =
+        (err as { error?: { message?: string }; message?: string })?.error?.message ||
+        (err as { message?: string })?.message ||
+        `HTTP ${r.status}`;
+      throw new Error(msg);
+    }
+    const j = (await r.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const text = j.choices?.[0]?.message?.content;
+    if (typeof text !== "string" || !text.trim()) throw new Error("empty reply");
+    return text.trim();
   } finally {
     done();
   }
