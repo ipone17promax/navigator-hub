@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NavigatorHub · 智谱代理</title>
+    <style>
+      body { font: 14px/1.7 system-ui, -apple-system, "Microsoft YaHei", sans-serif; background: #0a0a1a; color: #e5e7eb; display: grid; place-items: center; min-height: 100vh; margin: 0; }
+      main { max-width: 560px; padding: 28px; border: 1px solid rgba(255,255,255,.12); border-radius: 16px; background: rgba(255,255,255,.03); }
+      code { background: rgba(255,255,255,.08); padding: 2px 6px; border-radius: 6px; }
+      .ok { color: #34d399; }
+      p { margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>NavigatorHub · 智谱代理</h1>
+      <p class="ok">代理已部署。把下面的地址填进导航站 AI 面板的「Worker 代理地址」：</p>
+      <p><code>/.netlify/functions/zhipu-proxy</code></p>
+      <p>完整地址：<code id="url"></code></p>
+      <p>如果还没配置 Key，请在 Netlify 站点设置中添加环境变量 <code>ZHIPU_API_KEY</code>。</p>
+    </main>
+    <script>
+      document.getElementById("url").textContent =
+        location.origin + "/.netlify/functions/zhipu-proxy";
+    </script>
+  </body>
+</html>
