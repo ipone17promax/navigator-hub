@@ -33,7 +33,7 @@ const VVHAN = "https://api.vvhan.com";
 async function fetchImsyy(key: string, name: string): Promise<HotItem[]> {
   const j = await safeJson<{ code?: number; data?: { title?: string; url?: string }[] }>(
     `${IMSYY}/${key}`,
-    { timeoutMs: 4500 },
+    { timeoutMs: 2500 },
   );
   if (!j || j.code !== 200 || !Array.isArray(j.data)) throw new Error(`${key} imsyy unavailable`);
   return j.data
@@ -50,7 +50,7 @@ async function fetchImsyy(key: string, name: string): Promise<HotItem[]> {
 async function fetchVvhan(api: string, key: string, name: string): Promise<HotItem[]> {
   const j = await safeJson<{ success?: boolean; data?: Record<string, unknown>[] }>(
     `${VVHAN}/${api}`,
-    { timeoutMs: 4500 },
+    { timeoutMs: 2500 },
   );
   if (!j || !Array.isArray(j.data)) throw new Error(`${key} vvhan unavailable`);
   const items: HotItem[] = [];
