@@ -457,3 +457,25 @@ html[data-elder="true"] .ai-fab,
 html[data-elder="true"] .ai-panel {
   bottom: 200px;
 }
+/* 老人模式：底部导航允许横滑并隐藏非核心入口，避免 25% 放大后截断 */
+html[data-elder="true"] .bottom-nav-inner {
+  justify-content: flex-start;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+html[data-elder="true"] .bottom-nav-inner::-webkit-scrollbar {
+  display: none;
+}
+html[data-elder="true"] .nav-extra {
+  display: none !important;
+}
+
+/* 老人模式：信息条改为两列，小屏单列，避免 4 列挤压 */
+html[data-elder="true"] .info-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 640px) {
+  html[data-elder="true"] .info-grid {
+    grid-template-columns: 1fr;
+  }
+}

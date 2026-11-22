@@ -54,7 +54,7 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
         touchStart.current = null;
       }}
     >
-      <div className="flex items-center justify-between gap-1 rounded-2xl border border-stroke bg-bg-base/80 px-1.5 py-1.5 shadow-card backdrop-blur-xl">
+      <div className="bottom-nav-inner flex items-center justify-between gap-1 rounded-2xl border border-stroke bg-bg-base/80 px-1.5 py-1.5 shadow-card backdrop-blur-xl">
         <button onClick={() => openCmd()}
           className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
           title="Cmd+K" aria-label={t.cmd.title}>
@@ -91,22 +91,22 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
             </button>
           )}
           <button onClick={onOpenStats}
-            className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="nav-extra flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.stats.title} aria-label={t.stats.title}>
             <Icons.BarChart3 size={16} />
           </button>
           <button onClick={onOpenBg}
-            className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="nav-extra flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.bg.title} aria-label={t.bg.title}>
             <Icons.Palette size={16} />
           </button>
           <button onClick={onOpenCustom}
-            className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="nav-extra flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.custom.title} aria-label={t.custom.title}>
             <Icons.FolderPlus size={16} />
           </button>
           <button onClick={onOpenSync}
-            className="flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="nav-extra flex h-10 w-10 flex-col items-center justify-center rounded-xl text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.sync.title} aria-label={t.sync.title}>
             <Icons.Repeat size={16} />
           </button>

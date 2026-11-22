@@ -114,8 +114,9 @@ export default function AiAssistant() {
     setBusy(true);
     try {
       let reply: AiReply;
+      // 只带最近 10 条，避免长对话超 token / 请求超时
       const history: AiMessage[] = [
-        ...messages.map((m): AiMessage => ({ role: m.role, content: m.content })),
+        ...messages.slice(-10).map((m): AiMessage => ({ role: m.role, content: m.content })),
         { role: "user", content },
       ];
 
@@ -123,16 +124,25 @@ export default function AiAssistant() {
         try {
           const r = await chatWithZhipu(history, getZhipuKey(), getZhipuProxy());
           reply = { text: r, source: "zhipu" };
-        } catch {
+        } catch (err) {
+          const msg = String((err as Error)?.message || "");
+          const rateLimited = /rate limited|429/i.test(msg);
           reply = offlineReply(content, { locale: zh ? "zh" : "en" });
           reply.text =
-            (zh
-              ? "智谱云端连接失败（检查代理地址与 Key），已切换离线模式。"
-              : "Zhipu cloud failed (check proxy and key), switched to offline.") +
+            (rateLimited
+              ? zh
+                ? "请求太频繁，稍等几秒再问。"
+                : "Too many requests. Wait a few seconds."
+              : zh
+                ? "智谱云端连接失败（检查代理地址与 Key），已切换离线模式。"
+                : "Zhipu cloud failed (check proxy and key), switched to offline.") +
             "\n" +
             reply.text;
-          setMode("offline");
-          setModel("");
+          // 限流只是暂时的，保持云端模式；其它错误才回退离线
+          if (!rateLimited) {
+            setMode("offline");
+            setModel("");
+          }
         }
       } else if (mode === "local") {
         try {

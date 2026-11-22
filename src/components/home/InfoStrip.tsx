@@ -11,7 +11,7 @@ import NewsStream from "@/components/NewsStream";
 export default function InfoStrip() {
   return (
     <section className="relative z-10 px-4 pb-4 sm:px-6">
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="info-grid mx-auto grid w-full max-w-7xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <WeatherWidget />
         <MiniCalendar />
         <StockWidget />
