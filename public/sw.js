@@ -5,6 +5,7 @@ const PRECACHE = [
   BASE,
   BASE + "index.html",
   BASE + "manifest.webmanifest",
+  BASE + "offline.html",
 ];
 
 self.addEventListener("install", (e) => {
@@ -35,7 +36,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((c) => c.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(BASE + "index.html").then((r) => r || caches.match(BASE))),
+        .catch(() => caches.match(BASE + "index.html").then((r) => r || caches.match(BASE + "offline.html"))),
     );
     return;
   }

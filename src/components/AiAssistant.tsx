@@ -50,6 +50,7 @@ export default function AiAssistant() {
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -126,6 +127,8 @@ export default function AiAssistant() {
           // 先插入空消息，随后按 SSE 增量更新
           setMessages((m) => [...m, { role: "assistant", content: "" }]);
           let acc = "";
+          const ctrl = new AbortController();
+          abortRef.current = ctrl;
           const text = await chatWithZhipuStream(history, getZhipuKey(), getZhipuProxy(), (delta) => {
             acc += delta;
             setMessages((m) => {
@@ -134,7 +137,7 @@ export default function AiAssistant() {
               next[next.length - 1] = { role: "assistant", content: acc };
               return next;
             });
-          });
+          }, ctrl.signal);
           const finalText = text || acc;
           setMessages((m) => {
             if (!m.length) return m;
@@ -145,6 +148,16 @@ export default function AiAssistant() {
           reply = { text: finalText, source: "zhipu" };
           streamed = true;
         } catch (err) {
+          if ((err as Error)?.name === "AbortError") {
+            // 用户主动停止：保留已生成内容，保持云端模式
+            setMessages((m) => {
+              const last = m[m.length - 1];
+              if (last && last.role === "assistant" && !last.content && !last.links) return m.slice(0, -1);
+              return m;
+            });
+            streamed = true;
+            return;
+          }
           const msg = String((err as Error)?.message || "");
           const rateLimited = /rate limited|429/i.test(msg);
           reply = offlineReply(content, { locale: zh ? "zh" : "en" });
@@ -188,6 +201,7 @@ export default function AiAssistant() {
         setMessages((m) => [...m, { role: "assistant", content: reply.text, links: reply.links }]);
       }
     } finally {
+      abortRef.current = null;
       setBusy(false);
     }
   }
@@ -314,7 +328,12 @@ export default function AiAssistant() {
                 m.role === "user" ? "bg-brand-gradient text-white" : "bg-white/5 text-ink/85"
               }`}
             >
-              <div className="whitespace-pre-wrap">{m.content}</div>
+              <div className="whitespace-pre-wrap">
+                {m.content}
+                {busy && i === messages.length - 1 && m.role === "assistant" && (
+                  <span className="ml-0.5 inline-block h-3 w-1.5 animate-pulse bg-ink/60 align-middle" />
+                )}
+              </div>
               {m.links && m.links.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {m.links.map((l) => (
@@ -370,14 +389,25 @@ export default function AiAssistant() {
             placeholder={zh ? "问点什么…" : "Ask anything…"}
             className="min-w-0 flex-1 bg-transparent px-1.5 py-1 text-[12px] text-ink outline-none placeholder:text-ink-subtle"
           />
-          <button
-            onClick={() => void send()}
-            disabled={busy || !input.trim()}
-            className="rounded-lg bg-brand-gradient px-2.5 py-1.5 text-white disabled:opacity-40"
-            aria-label={zh ? "发送" : "Send"}
-          >
-            <Icons.ArrowRight size={14} />
-          </button>
+          {busy ? (
+            <button
+              onClick={() => abortRef.current?.abort()}
+              className="rounded-lg border border-stroke bg-white/5 px-2.5 py-1.5 text-ink transition-colors hover:bg-white/10"
+              aria-label={zh ? "停止生成" : "Stop"}
+              title={zh ? "停止生成" : "Stop"}
+            >
+              <Icons.X size={14} />
+            </button>
+          ) : (
+            <button
+              onClick={() => void send()}
+              disabled={!input.trim()}
+              className="rounded-lg bg-brand-gradient px-2.5 py-1.5 text-white disabled:opacity-40"
+              aria-label={zh ? "发送" : "Send"}
+            >
+              <Icons.ArrowRight size={14} />
+            </button>
+          )}
         </div>
       </div>
     </div>

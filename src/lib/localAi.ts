@@ -153,16 +153,20 @@ export async function chatWithZhipuStream(
   key: string,
   proxy: string,
   onDelta: (delta: string) => void,
+  externalSignal?: AbortSignal,
 ): Promise<string> {
   const endpoint = proxy.trim();
   if (!endpoint) throw new Error("zhipu proxy not configured");
-  const { signal, done } = withTimeout(60000);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  const onAbort = () => ctrl.abort();
+  externalSignal?.addEventListener("abort", onAbort);
   try {
     const r = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ key: key.trim(), model: ZHIPU_MODEL, messages, stream: true }),
-      signal,
+      signal: ctrl.signal,
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
@@ -201,7 +205,8 @@ export async function chatWithZhipuStream(
     if (!full.trim()) throw new Error("empty stream");
     return full.trim();
   } finally {
-    done();
+    clearTimeout(timer);
+    externalSignal?.removeEventListener("abort", onAbort);
   }
 }
 

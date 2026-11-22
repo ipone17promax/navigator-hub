@@ -8,6 +8,23 @@ import { useUserStore } from "@/stores/useUserStore";
 import { searchSites, categoryLabel, openSiteTarget, type SiteHit } from "@/lib/siteSearch";
 import type { LucideIcon } from "lucide-react";
 
+/** 高亮命中片段（仅字面命中；拼音命中时按原名展示） */
+function highlightText(text: string, query: string) {
+  const q = query.trim();
+  if (!q) return text;
+  const i = text.toLowerCase().indexOf(q.toLowerCase());
+  if (i < 0) return text;
+  return (
+    <>
+      {text.slice(0, i)}
+      <mark className="rounded bg-brand-primary/25 px-0.5 text-brand-primary">
+        {text.slice(i, i + q.length)}
+      </mark>
+      {text.slice(i + q.length)}
+    </>
+  );
+}
+
 const icon = (name: string): LucideIcon =>
   (Icons as unknown as Record<string, LucideIcon>)[name] ?? Icons.Search;
 
@@ -329,8 +346,8 @@ export default function SearchHero() {
                     <I size={15} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-ink">{site.name}</span>
-                    <span className="block truncate text-[11px] text-ink-subtle">{site.description}</span>
+                    <span className="block truncate text-sm font-medium text-ink">{highlightText(site.name, keyword)}</span>
+                    <span className="block truncate text-[11px] text-ink-subtle">{highlightText(site.description, keyword)}</span>
                   </span>
                   <span className="shrink-0 rounded-full border border-stroke px-2 py-0.5 text-[10px] text-ink-subtle">
                     {categoryLabel(site.category)}
