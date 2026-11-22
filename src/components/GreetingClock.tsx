@@ -25,8 +25,29 @@ export default function GreetingClock() {
   const [now, setNow] = useState<Date>(() => new Date());
 
   useEffect(() => {
-    const id = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(id);
+    let timer = 0;
+    // 每秒对齐到整秒，避免 setInterval 长时间漂移
+    const tick = () => {
+      const d = new Date();
+      setNow(d);
+      timer = window.setTimeout(tick, 1000 - d.getMilliseconds());
+    };
+    tick();
+
+    // 后台标签/微信切回时立即按系统时间刷新，不等下一次 tick
+    const syncNow = () => {
+      if (!document.hidden) setNow(new Date());
+    };
+    document.addEventListener("visibilitychange", syncNow);
+    window.addEventListener("focus", syncNow);
+    window.addEventListener("pageshow", syncNow);
+
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", syncNow);
+      window.removeEventListener("focus", syncNow);
+      window.removeEventListener("pageshow", syncNow);
+    };
   }, []);
 
   const greeting = pickGreeting(now.getHours(), t);
