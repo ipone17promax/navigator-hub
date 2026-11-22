@@ -34,7 +34,7 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
 
   return (
     <nav
-      className="pointer-events-auto fixed inset-x-0 bottom-3 z-40 mx-auto w-[min(96vw,640px)] animate-slide-up"
+      className="bottom-nav-shell pointer-events-auto fixed inset-x-0 bottom-3 z-40 mx-auto w-[min(96vw,640px)] animate-slide-up"
       onTouchStart={(e) => {
         const t = e.touches[0];
         touchStart.current = { x: t.clientX, y: t.clientY };

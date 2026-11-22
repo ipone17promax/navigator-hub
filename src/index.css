@@ -480,10 +480,38 @@ html[data-elder="true"] .info-grid {
   }
 }
 
-/* 移动端顶部工具栏：隐藏次要按钮，避免 375px 溢出 */
+/* 移动端顶部工具栏：横滑保留全部入口，避免功能“缺失” */
 @media (max-width: 640px) {
+  .header-actions {
+    max-width: calc(100vw - 2rem);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .header-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .header-actions > * {
+    flex: 0 0 auto;
+  }
   .header-secondary {
-    display: none !important;
+    display: inline-flex !important;
+  }
+}
+
+/* 微信/移动端底部安全区：避免被工具栏遮挡 */
+.bottom-nav-shell {
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+.ai-fab,
+.ai-panel {
+  bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* 微信 WebView 的 100vh 会包含工具栏，用 dvh 修正 */
+@supports (height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
   }
 }
 
