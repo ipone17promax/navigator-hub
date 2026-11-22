@@ -12,7 +12,7 @@ export default function ElderExitBar() {
   if (!elderlyMode) return null;
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 z-[45] mx-auto flex w-full max-w-md justify-center px-4"
+      className="elder-exit pointer-events-none fixed inset-x-0 z-[45] mx-auto flex w-full max-w-md justify-center px-4"
       style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)" }}
     >
       <button

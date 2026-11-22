@@ -499,13 +499,32 @@ html[data-elder="true"] .info-grid {
   }
 }
 
-/* 微信/移动端底部安全区：避免被工具栏遮挡 */
+/* 微信/移动端底部安全区：底部工具栏会占掉一截，固定元素整体上移 */
 .bottom-nav-shell {
   bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
 }
 .ai-fab,
 .ai-panel {
   bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 640px) {
+  .bottom-nav-shell {
+    bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  .ai-fab,
+  .ai-panel {
+    bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px));
+  }
+  #root {
+    padding-bottom: 128px;
+  }
+  .elder-exit {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 140px) !important;
+  }
+  html[data-elder="true"] #root {
+    padding-bottom: 210px;
+  }
 }
 
 /* 微信 WebView 的 100vh 会包含工具栏，用 dvh 修正 */
