@@ -442,8 +442,8 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* 关爱老人模式（特大）：整体放大 25%，字号与点击区域一起变大 */
-html[data-elder="true"] {
+/* 关爱老人模式（特大）：只放大内容层，顶部/底部固定栏保持手机原生尺寸 */
+html[data-elder="true"] .page-zoom {
   zoom: 1.25;
 }
 
@@ -524,6 +524,20 @@ html[data-elder="true"] .info-grid {
   }
   html[data-elder="true"] #root {
     padding-bottom: 210px;
+  }
+  /* 移动端 Dock 只留核心入口，避免横向拥挤 */
+  .nav-extra {
+    display: none !important;
+  }
+  /* AI 球移到左下，避开右下角搜索按钮 */
+  .ai-fab {
+    right: auto;
+    left: 16px;
+  }
+  .ai-panel {
+    left: 12px;
+    right: 12px;
+    width: auto;
   }
 }
 

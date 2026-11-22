@@ -126,7 +126,7 @@ export default function HomePage() {
       </header>
 
       {/* 单栏主体：搜索 → 收藏 → 内容 → 信息条 → 底部（首屏骨架由 index.html 承担，这里直接出内容） */}
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col">
+      <div className="page-zoom relative mx-auto flex w-full max-w-7xl flex-col">
         <SearchBlock />
         <FavoritesStrip />
         <ContentArea />
@@ -142,8 +142,8 @@ export default function HomePage() {
         }>
           <InfoStrip />
         </Suspense>
-        <FooterActions />
       </div>
+      <FooterActions />
 
       {/* 全局弹层：命令面板 */}
       <Suspense fallback={null}>
