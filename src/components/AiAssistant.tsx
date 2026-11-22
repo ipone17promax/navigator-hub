@@ -21,6 +21,8 @@ type ChatMsg = {
   links?: { label: string; url: string }[];
 };
 
+const CHAT_KEY = "nh.ai.chat.v1";
+
 type Mode = "checking" | "zhipu" | "local" | "offline";
 
 /**
@@ -38,14 +40,26 @@ export default function AiAssistant() {
   const [showConfig, setShowConfig] = useState(false);
   const [keyDraft, setKeyDraft] = useState(getZhipuKey());
   const [proxyDraft, setProxyDraft] = useState(getZhipuProxy());
-  const [messages, setMessages] = useState<ChatMsg[]>([
-    {
+  const [messages, setMessages] = useState<ChatMsg[]>(() => {
+    const welcome: ChatMsg = {
       role: "assistant",
       content: zh
         ? "你好，我是 NavigatorHub 的 AI 助手。配置智谱代理后使用云端 GLM，本机服务在线时用本地 Qwen，都不可用时走离线知识库。"
         : "Hi, I'm NavigatorHub's assistant. It uses Zhipu GLM via proxy, a local Qwen model, or the offline knowledge base.",
-    },
-  ]);
+    };
+    try {
+      const raw = localStorage.getItem(CHAT_KEY);
+      if (raw) {
+        const arr = JSON.parse(raw) as ChatMsg[];
+        if (Array.isArray(arr) && arr.length) {
+          return arr.slice(-20).filter((x) => x && typeof x.content === "string");
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return [welcome];
+  });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
@@ -75,6 +89,15 @@ export default function AiAssistant() {
       alive = false;
     };
   }, [open]);
+
+  // 对话持久化：最近 20 条，刷新或重开面板后保留
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_KEY, JSON.stringify(messages.slice(-20)));
+    } catch {
+      /* ignore */
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (!open) return;

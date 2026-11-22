@@ -33,7 +33,7 @@ export default function HeaderActions() {
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="header-actions flex items-center gap-2">
         {left.map((b, i) => {
           const I = b.icon;
           return (
@@ -41,7 +41,8 @@ export default function HeaderActions() {
               key={i}
               onClick={b.onClick}
               title={b.title}
-              className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+              aria-label={b.title}
+              className="header-secondary inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
             >
               <I size={14} />
             </button>
@@ -53,7 +54,8 @@ export default function HeaderActions() {
           <button
             onClick={() => setShowLogin(true)}
             title="管理员登录"
-            className="inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
+            aria-label="管理员登录"
+            className="header-secondary inline-flex items-center gap-1 rounded-xl border border-stroke bg-bg-elevate/60 px-3 py-2 text-ink-muted backdrop-blur transition-colors hover:border-stroke-hover hover:text-ink"
           >
             <Icons.LogIn size={14} />
           </button>

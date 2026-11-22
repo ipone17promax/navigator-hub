@@ -479,3 +479,10 @@ html[data-elder="true"] .info-grid {
     grid-template-columns: 1fr;
   }
 }
+
+/* 移动端顶部工具栏：隐藏次要按钮，避免 375px 溢出 */
+@media (max-width: 640px) {
+  .header-secondary {
+    display: none !important;
+  }
+}
