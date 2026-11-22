@@ -59,6 +59,46 @@ export function setGistId(id: string) {
   }
 }
 
+/* ---------- 同步快照：上传/下载前自动备份，可一键回滚 ---------- */
+const SNAPSHOT_KEY = "nh.gist.snapshot.v1";
+
+export interface GistSnapshot {
+  at: number;
+  reason: "before-upload" | "before-download";
+  payload: unknown;
+}
+
+export function saveSnapshot(payload: unknown, reason: GistSnapshot["reason"]): void {
+  try {
+    localStorage.setItem(
+      SNAPSHOT_KEY,
+      JSON.stringify({ at: Date.now(), reason, payload } satisfies GistSnapshot),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+export function getSnapshot(): GistSnapshot | null {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as GistSnapshot;
+    if (s && s.at && s.payload) return s;
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+export function clearSnapshot(): void {
+  try {
+    localStorage.removeItem(SNAPSHOT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 function headers(token: string) {
   return {
     Authorization: `Bearer ${token}`,

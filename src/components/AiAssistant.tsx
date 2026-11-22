@@ -297,6 +297,27 @@ export default function AiAssistant() {
         </div>
         <div className="flex items-center gap-1">
           <button
+            onClick={() => {
+              const welcome: ChatMsg = {
+                role: "assistant",
+                content: zh
+                  ? "你好，我是 NavigatorHub 的 AI 助手。配置智谱代理后使用云端 GLM，本机服务在线时用本地 Qwen，都不可用时走离线知识库。"
+                  : "Hi, I'm NavigatorHub's assistant. It uses Zhipu GLM via proxy, a local Qwen model, or the offline knowledge base.",
+              };
+              setMessages([welcome]);
+              try {
+                localStorage.removeItem(CHAT_KEY);
+              } catch {
+                /* ignore */
+              }
+            }}
+            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            title={zh ? "清空对话" : "Clear chat"}
+            aria-label={zh ? "清空对话" : "Clear chat"}
+          >
+            <Icons.Trash2 size={14} />
+          </button>
+          <button
             onClick={() => setShowConfig((v) => !v)}
             className={`rounded-lg p-1.5 transition-colors hover:bg-white/5 ${showConfig ? "text-amber-300" : "text-ink-muted hover:text-ink"}`}
             title={zh ? "配置智谱云端" : "Configure Zhipu cloud"}
@@ -369,6 +390,17 @@ export default function AiAssistant() {
                     </button>
                   ))}
                 </div>
+              )}
+              {m.role === "assistant" && m.content && (
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(m.content);
+                  }}
+                  className="mt-1.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-ink-subtle transition-colors hover:bg-white/5 hover:text-ink"
+                  aria-label={zh ? "复制回答" : "Copy reply"}
+                >
+                  <Icons.Copy size={11} /> {zh ? "复制" : "Copy"}
+                </button>
               )}
             </div>
           </div>

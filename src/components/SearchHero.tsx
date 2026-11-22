@@ -1,12 +1,13 @@
 ﻿import { useEffect, useMemo, useRef, useState } from "react";
 import * as Icons from "@/lib/iconRegistry";
 import { useAppStore } from "@/stores/useAppStore";
-import { SEARCH_ENGINES } from "@/config/sites";
+import { SEARCH_ENGINES, CATEGORY_MAP } from "@/config/sites";
 import { logger } from "@/lib/logger";
 import { useI18n } from "@/i18n";
 import { useUserStore } from "@/stores/useUserStore";
 import { searchSites, categoryLabel, openSiteTarget, type SiteHit } from "@/lib/siteSearch";
 import type { LucideIcon } from "lucide-react";
+import type { SiteCategory } from "@/shared/types";
 
 /** 高亮命中片段（仅字面命中；拼音命中时按原名展示） */
 function highlightText(text: string, query: string) {
@@ -81,6 +82,7 @@ export default function SearchHero() {
   const [open, setOpen] = useState(false);
   const [focused, setFocused] = useState(false);
   const [activeIdx, setActiveIdx] = useState(-1);
+  const [filterCat, setFilterCat] = useState<SiteCategory | null>(null);
   const [history, setHistory] = useState<string[]>(loadHistory);
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -121,8 +123,9 @@ export default function SearchHero() {
   const siteHits = useMemo<SiteHit[]>(() => {
     const q = keyword.trim();
     if (!q || /^!/.test(q) || looksLikeUrl(q)) return [];
-    return searchSites(q, 6);
-  }, [keyword]);
+    const all = searchSites(q, 12);
+    return (filterCat ? all.filter((h) => h.category === filterCat) : all).slice(0, 6);
+  }, [keyword, filterCat]);
 
   const openSite = (site: SiteHit) => {
     useUserStore.getState().recordVisit({
@@ -274,7 +277,7 @@ export default function SearchHero() {
             ref={inputRef}
             type="search"
             value={keyword}
-            onChange={(e) => { setKeyword(e.target.value); setActiveIdx(-1); }}
+            onChange={(e) => { setKeyword(e.target.value); setActiveIdx(-1); setFilterCat(null); }}
             onFocus={() => setFocused(true)}
             onBlur={() => window.setTimeout(() => setFocused(false), 120)}
             onKeyDown={(e) => {
@@ -324,6 +327,21 @@ export default function SearchHero() {
             role="listbox"
             aria-label={t.search.localResults}
           >
+            <div className="mb-1 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+              {Object.keys(CATEGORY_MAP).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setFilterCat(filterCat === c ? null : (c as SiteCategory))}
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] transition-colors ${
+                    filterCat === c ? "bg-white/10 text-ink" : "text-ink-muted hover:bg-white/5"
+                  }`}
+                >
+                  {categoryLabel(c as SiteCategory)}
+                </button>
+              ))}
+            </div>
             {siteHits.map((site, i) => {
               const I = icon(site.iconName);
               return (

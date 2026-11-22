@@ -5,9 +5,12 @@ import { useUserStore } from "@/stores/useUserStore";
 import { useI18n } from "@/i18n";
 import { decodeSync, encodeSync, extractSyncCode } from "@/lib/syncCode";
 import {
+  clearSnapshot,
   downloadFromGist,
   getGistId,
   getGistToken,
+  getSnapshot,
+  saveSnapshot,
   setGistId,
   setGistToken,
   uploadToGist,
@@ -32,7 +35,8 @@ function buildPayload(): GistPayload {
 }
 
 export default function DataSync() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const zh = locale === "zh";
   const store = useUserStore();
   const [paste, setPaste] = useState("");
   const [tip, setTip] = useState<string>("");
@@ -48,6 +52,7 @@ export default function DataSync() {
     return id ? `https://gist.github.com/${id}` : "";
   });
   const [busy, setBusy] = useState<"" | "up" | "down">("");
+  const [snapshot, setSnapshot] = useState(getSnapshot);
 
   const flash = (msg: string, ms = 2200) => {
     setTip(msg);
@@ -132,6 +137,9 @@ export default function DataSync() {
     const v = token.trim();
     if (!v) return flash(t.gist.noToken);
     setBusy("up");
+    // 上传前备份本地当前状态，失败或误操作可回滚
+    saveSnapshot(buildPayload(), "before-upload");
+    setSnapshot(getSnapshot());
     try {
       const r = await uploadToGist(v, buildPayload());
       setGistId(r.id);
@@ -147,6 +155,9 @@ export default function DataSync() {
 
   const doDownload = async () => {
     setBusy("down");
+    // 下载会覆盖本地，先备份当前状态
+    saveSnapshot(buildPayload(), "before-download");
+    setSnapshot(getSnapshot());
     try {
       const data = await downloadFromGist(gistInput.trim(), token.trim());
       const ok = store.importJSON(JSON.stringify(data));
@@ -156,6 +167,18 @@ export default function DataSync() {
     } finally {
       setBusy("");
     }
+  };
+
+  const doRestore = () => {
+    const snap = getSnapshot();
+    if (!snap) return;
+    const ok = store.importJSON(JSON.stringify(snap.payload));
+    flash(ok ? (zh ? "已恢复上次备份" : "Backup restored") : t.sync.fail, 3000);
+  };
+
+  const doClearSnapshot = () => {
+    clearSnapshot();
+    setSnapshot(null);
   };
 
   return (
@@ -265,6 +288,28 @@ export default function DataSync() {
             </a>
           )}
         </div>
+
+        {snapshot && (
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-stroke bg-bg-base/40 px-3 py-2 text-[11px] text-ink-subtle">
+            <Icons.RefreshCw size={12} />
+            <span>
+              {zh ? "上次备份" : "Last backup"}：
+              {new Date(snapshot.at).toLocaleString()}
+            </span>
+            <button
+              onClick={doRestore}
+              className="rounded-lg border border-stroke px-2 py-0.5 text-ink transition-colors hover:bg-white/5"
+            >
+              {zh ? "恢复" : "Restore"}
+            </button>
+            <button
+              onClick={doClearSnapshot}
+              className="rounded-lg px-2 py-0.5 text-ink-muted transition-colors hover:bg-white/5"
+            >
+              {zh ? "清除" : "Clear"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
