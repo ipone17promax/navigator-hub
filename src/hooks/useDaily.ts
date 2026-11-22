@@ -3,7 +3,6 @@ import { safeJson } from "@/lib/api";
 import { logger } from "@/lib/logger";
 
 const CACHE_KEY = "nh.daily.v1";
-const TTL = 60 * 60 * 1000;
 
 export interface DailyBrief {
   date: string;
@@ -18,7 +17,8 @@ interface DailyCache {
 function readCache(): DailyBrief | null {
   try {
     const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null") as DailyCache | null;
-    if (c && typeof c.at === "number" && Date.now() - c.at < TTL && Array.isArray(c.data?.news) && c.data.news.length) {
+    // 过期也先返回，失败时至少还能展示上次简报
+    if (c && Array.isArray(c.data?.news) && c.data.news.length > 0) {
       return c.data;
     }
   } catch {
@@ -57,10 +57,11 @@ export function useDaily() {
         }
         setData(next);
         setStatus("ok");
-      } else {
+      } else if (!data) {
         setStatus("error");
         logger.warn("useDaily", "60s 简报不可用");
       }
+      // 有旧数据时保持 ok，避免内容卡片突然消失
     },
     [data],
   );

@@ -15,7 +15,25 @@ const ZHIPU_PROXY_STORE = "nh.zhipu.proxy.v2";
 /** 共享代理：使用者无需配置，打开即可用；服务端每 IP 每分钟限流 */
 const DEFAULT_ZHIPU_PROXY = "https://navigator-zhipu-proxy-production.up.railway.app";
 const ZHIPU_PROXY_OFF = "off";
-const ZHIPU_MODEL = "glm-4-flash";
+const ZHIPU_MODEL_STORE = "nh.zhipu.model.v1";
+const DEFAULT_ZHIPU_MODEL = "glm-4-flash";
+
+export function getZhipuModel(): string {
+  try {
+    return localStorage.getItem(ZHIPU_MODEL_STORE) || DEFAULT_ZHIPU_MODEL;
+  } catch {
+    return DEFAULT_ZHIPU_MODEL;
+  }
+}
+
+export function setZhipuModel(model: string): void {
+  try {
+    if (model.trim()) localStorage.setItem(ZHIPU_MODEL_STORE, model.trim());
+    else localStorage.removeItem(ZHIPU_MODEL_STORE);
+  } catch {
+    /* ignore */
+  }
+}
 
 export function getZhipuKey(): string {
   try {
@@ -128,7 +146,7 @@ export async function chatWithZhipu(messages: AiMessage[], key: string, proxy: s
     const r = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: key.trim(), model: ZHIPU_MODEL, messages }),
+      body: JSON.stringify({ key: key.trim(), model: getZhipuModel(), messages }),
       signal,
     });
     if (!r.ok) {
@@ -165,7 +183,7 @@ export async function chatWithZhipuStream(
     const r = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key: key.trim(), model: ZHIPU_MODEL, messages, stream: true }),
+      body: JSON.stringify({ key: key.trim(), model: getZhipuModel(), messages, stream: true }),
       signal: ctrl.signal,
     });
     if (!r.ok) {

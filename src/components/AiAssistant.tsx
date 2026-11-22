@@ -7,7 +7,9 @@ import {
   chatWithZhipuStream,
   checkLocalModel,
   getZhipuKey,
+  getZhipuModel,
   getZhipuProxy,
+  setZhipuModel,
   offlineReply,
   setZhipuKey,
   setZhipuProxy,
@@ -37,6 +39,7 @@ export default function AiAssistant() {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("checking");
   const [model, setModel] = useState("");
+  const [modelDraft, setModelDraft] = useState(getZhipuModel());
   const [showConfig, setShowConfig] = useState(false);
   const [keyDraft, setKeyDraft] = useState(getZhipuKey());
   const [proxyDraft, setProxyDraft] = useState(getZhipuProxy());
@@ -72,7 +75,7 @@ export default function AiAssistant() {
     const proxy = getZhipuProxy();
     if (proxy) {
       setMode("zhipu");
-      setModel("glm-4-flash");
+      setModel(getZhipuModel());
       return;
     }
     setMode("checking");
@@ -120,10 +123,11 @@ export default function AiAssistant() {
     setZhipuKey(keyDraft);
     setZhipuProxy(proxyDraft);
     const proxy = getZhipuProxy();
+    setZhipuModel(modelDraft);
     setShowConfig(false);
     if (proxy) {
       setMode("zhipu");
-      setModel("glm-4-flash");
+      setModel(getZhipuModel());
     } else {
       setMode("offline");
       setModel("");
@@ -350,6 +354,18 @@ export default function AiAssistant() {
             placeholder={zh ? "Worker 代理地址（https://xxx.workers.dev）" : "Worker proxy URL (https://xxx.workers.dev)"}
             className="w-full rounded-lg border border-stroke bg-bg-elevate/60 px-2.5 py-1.5 text-[11px] text-ink outline-none placeholder:text-ink-subtle focus:border-brand-primary"
           />
+          <div className="flex items-center gap-2">
+            <span className="shrink-0 text-[10px] text-ink-subtle">{zh ? "模型" : "Model"}</span>
+            <select
+              value={modelDraft}
+              onChange={(e) => setModelDraft(e.target.value)}
+              className="min-w-0 flex-1 rounded-lg border border-stroke bg-bg-elevate/60 px-2 py-1.5 text-[11px] text-ink outline-none focus:border-brand-primary"
+            >
+              <option value="glm-4-flash">glm-4-flash（{zh ? "免费" : "free"}）</option>
+              <option value="glm-4-air">glm-4-air（{zh ? "付费" : "paid"}）</option>
+              <option value="glm-4-plus">glm-4-plus（{zh ? "付费" : "paid"}）</option>
+            </select>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={saveConfig}

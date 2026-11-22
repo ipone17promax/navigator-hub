@@ -486,3 +486,8 @@ html[data-elder="true"] .info-grid {
     display: none !important;
   }
 }
+
+/* 老人模式下隐藏安装提示，避免与退出条重叠 */
+html[data-elder="true"] .pwa-install {
+  display: none !important;
+}

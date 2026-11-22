@@ -3,7 +3,6 @@ import { safeJson } from "@/lib/api";
 import { logger } from "@/lib/logger";
 
 const CACHE_KEY = "nh.hot.v1";
-const TTL = 60 * 60 * 1000;
 
 export interface HotItem {
   title: string;
@@ -80,7 +79,8 @@ interface HotCache {
 function readCache(): HotItem[] {
   try {
     const c = JSON.parse(localStorage.getItem(CACHE_KEY) || "null") as HotCache | null;
-    if (c && typeof c.at === "number" && Date.now() - c.at < TTL && Array.isArray(c.items)) {
+    // 过期也先返回，失败时至少还能展示上次内容
+    if (c && Array.isArray(c.items) && c.items.length > 0) {
       return c.items;
     }
   } catch {
@@ -125,10 +125,11 @@ export function useHot() {
         writeCache(merged);
         setItems(merged);
         setStatus("ok");
-      } else {
+      } else if (items.length === 0) {
         setStatus("error");
         logger.warn("useHot", "热榜源全部不可用，已静默降级");
       }
+      // 有旧数据时保持 ok，避免内容卡片突然消失
     },
     [items.length],
   );
