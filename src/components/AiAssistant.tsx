@@ -4,7 +4,7 @@ import { useI18n } from "@/i18n";
 import { useAppStore } from "@/stores/useAppStore";
 import {
   chatWithLocalModel,
-  chatWithZhipu,
+  chatWithZhipuStream,
   checkLocalModel,
   getZhipuKey,
   getZhipuProxy,
@@ -120,10 +120,30 @@ export default function AiAssistant() {
         { role: "user", content },
       ];
 
+      let streamed = false;
       if (mode === "zhipu") {
         try {
-          const r = await chatWithZhipu(history, getZhipuKey(), getZhipuProxy());
-          reply = { text: r, source: "zhipu" };
+          // 先插入空消息，随后按 SSE 增量更新
+          setMessages((m) => [...m, { role: "assistant", content: "" }]);
+          let acc = "";
+          const text = await chatWithZhipuStream(history, getZhipuKey(), getZhipuProxy(), (delta) => {
+            acc += delta;
+            setMessages((m) => {
+              if (!m.length) return m;
+              const next = m.slice();
+              next[next.length - 1] = { role: "assistant", content: acc };
+              return next;
+            });
+          });
+          const finalText = text || acc;
+          setMessages((m) => {
+            if (!m.length) return m;
+            const next = m.slice();
+            next[next.length - 1] = { role: "assistant", content: finalText };
+            return next;
+          });
+          reply = { text: finalText, source: "zhipu" };
+          streamed = true;
         } catch (err) {
           const msg = String((err as Error)?.message || "");
           const rateLimited = /rate limited|429/i.test(msg);
@@ -138,6 +158,12 @@ export default function AiAssistant() {
                 : "Zhipu cloud failed (check proxy and key), switched to offline.") +
             "\n" +
             reply.text;
+          // 移除空的流式占位消息，改走离线回复
+          setMessages((m) => {
+            const last = m[m.length - 1];
+            if (last && last.role === "assistant" && !last.content && !last.links) return m.slice(0, -1);
+            return m;
+          });
           // 限流只是暂时的，保持云端模式；其它错误才回退离线
           if (!rateLimited) {
             setMode("offline");
@@ -158,7 +184,9 @@ export default function AiAssistant() {
 
       if (reply.action === "elder") useAppStore.getState().toggleElderlyMode();
       if (reply.action === "theme") toggleTheme();
-      setMessages((m) => [...m, { role: "assistant", content: reply.text, links: reply.links }]);
+      if (!streamed) {
+        setMessages((m) => [...m, { role: "assistant", content: reply.text, links: reply.links }]);
+      }
     } finally {
       setBusy(false);
     }

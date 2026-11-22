@@ -144,6 +144,67 @@ export async function chatWithZhipu(messages: AiMessage[], key: string, proxy: s
   }
 }
 
+/**
+ * 流式对话：解析智谱 SSE，逐段回调，返回完整文本
+ * 代理需支持 stream:true（render-proxy/server.mjs 已实现透传）
+ */
+export async function chatWithZhipuStream(
+  messages: AiMessage[],
+  key: string,
+  proxy: string,
+  onDelta: (delta: string) => void,
+): Promise<string> {
+  const endpoint = proxy.trim();
+  if (!endpoint) throw new Error("zhipu proxy not configured");
+  const { signal, done } = withTimeout(60000);
+  try {
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key: key.trim(), model: ZHIPU_MODEL, messages, stream: true }),
+      signal,
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error || `HTTP ${r.status}`);
+    }
+    if (!r.body) throw new Error("streaming unsupported");
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let full = "";
+    while (true) {
+      const { done: finished, value } = await reader.read();
+      if (finished) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+        const data = trimmed.slice(5).trim();
+        if (!data || data === "[DONE]") continue;
+        try {
+          const j = JSON.parse(data) as {
+            choices?: { delta?: { content?: string }; message?: { content?: string } }[];
+          };
+          const delta = j.choices?.[0]?.delta?.content ?? j.choices?.[0]?.message?.content;
+          if (delta) {
+            full += delta;
+            onDelta(delta);
+          }
+        } catch {
+          /* 忽略非 JSON 行 */
+        }
+      }
+    }
+    if (!full.trim()) throw new Error("empty stream");
+    return full.trim();
+  } finally {
+    done();
+  }
+}
+
 function readWeather(): { city: string; temp: number; condition: string } | null {
   try {
     const raw = localStorage.getItem("nh.weather.data.v4");

@@ -123,6 +123,7 @@ const server = http.createServer(async (req, res) => {
       },
       body: JSON.stringify({
         model: body.model || "glm-4-flash",
+        stream: Boolean(body.stream),
         messages: [
           {
             role: "system",
@@ -135,6 +136,41 @@ const server = http.createServer(async (req, res) => {
         temperature: 0.7,
       }),
     });
+
+    // 流式：直接透传智谱 SSE，前端逐字渲染
+    if (body.stream) {
+      if (!upstream.ok) {
+        const text = await upstream.text();
+        let detail = text.slice(0, 300);
+        try {
+          const e = JSON.parse(text);
+          detail = e?.error?.message || e?.message || detail;
+        } catch {
+          /* keep raw */
+        }
+        send(res, upstream.status, { error: detail || `upstream ${upstream.status}` });
+        return;
+      }
+      if (!upstream.body) {
+        send(res, 502, { error: "no stream body" });
+        return;
+      }
+      res.writeHead(200, {
+        ...CORS,
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      });
+      try {
+        for await (const chunk of upstream.body) res.write(chunk);
+      } catch {
+        /* 上游中断或客户端断开 */
+      } finally {
+        res.end();
+      }
+      return;
+    }
 
     const text = await upstream.text();
     if (!upstream.ok) {
