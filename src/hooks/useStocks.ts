@@ -148,7 +148,7 @@ export function useStocks() {
 
   useEffect(() => {
     // 第三方行情延迟到空闲期，避免挤占首屏渲染主线程
-    let t = 0;
+    let t: ReturnType<typeof setInterval> | undefined;
     deferIdle(() => {
       void loadAll();
       t = setInterval(() => {
@@ -157,7 +157,9 @@ export function useStocks() {
         void loadAll();
       }, 60 * 1000);
     });
-    return () => clearInterval(t);
+    return () => {
+      if (t !== undefined) clearInterval(t);
+    };
   }, [loadAll]);
 
   const hasRealData = stocks.some((s) => s.online);
