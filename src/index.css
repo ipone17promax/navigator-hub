@@ -558,8 +558,4 @@ html[data-elder="true"] .info-grid {
 html[data-elder="true"] .pwa-install {
   display: none !important;
 }
-/* 站点卡片：视口外跳过布局与渲染，降低首帧 Style & Layout 开销 */
-.site-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 180px;
-}
+
