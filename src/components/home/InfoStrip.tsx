@@ -1,7 +1,10 @@
-import WeatherWidget from "@/components/WeatherWidget";
+import { Suspense, lazy } from "react";
 import MiniCalendar from "@/components/MiniCalendar";
-import StockWidget from "@/components/StockWidget";
 import NewsStream from "@/components/NewsStream";
+
+// 方案第 3 步 A：第三方小组件按需加载，首屏信息条只下发布局骨架
+const WeatherWidget = lazy(() => import("@/components/WeatherWidget"));
+const StockWidget = lazy(() => import("@/components/StockWidget"));
 
 /**
  * 360 风格信息条：站点网格下方，横排 4 列
@@ -12,9 +15,13 @@ export default function InfoStrip() {
   return (
     <section className="relative z-10 px-4 pb-4 sm:px-6">
       <div className="info-grid mx-auto grid w-full max-w-7xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <WeatherWidget />
+        <Suspense fallback={<div className="min-h-[180px] rounded-2xl border border-stroke bg-bg-elevate/40" />}>
+          <WeatherWidget />
+        </Suspense>
         <MiniCalendar />
-        <StockWidget />
+        <Suspense fallback={<div className="min-h-[180px] rounded-2xl border border-stroke bg-bg-elevate/40" />}>
+          <StockWidget />
+        </Suspense>
         <NewsStream />
       </div>
     </section>

@@ -14,7 +14,9 @@ export default function PullToRefresh() {
   const [pull, setPull] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const pullRef = useRef(0);
-  const startRef = useRef<{ x: number; y: number; active: boolean } | null>(null);
+  const startRef = useRef<{ x: number; y: number; scrollY: number; active: boolean } | null>(null);
+  const moveRef = useRef<{ x: number; y: number } | null>(null);
+  const tickingRef = useRef(false);
 
   const THRESHOLD = 64;
   const MAX = 104;
@@ -31,29 +33,41 @@ export default function PullToRefresh() {
     const onStart = (e: TouchEvent) => {
       if (refreshing || window.scrollY > 0) return;
       const t = e.touches[0];
-      startRef.current = { x: t.clientX, y: t.clientY, active: true };
+      // 只在这里读一次 scrollY 并缓存，touchmove 高频路径不再触发布局读取
+      startRef.current = { x: t.clientX, y: t.clientY, scrollY: window.scrollY, active: true };
     };
 
     const onMove = (e: TouchEvent) => {
       const s = startRef.current;
       if (!s?.active) return;
       const t = e.touches[0];
+      // 读阶段：只缓存触摸坐标（事件对象，无布局读取）
+      moveRef.current = { x: t.clientX, y: t.clientY };
       const dy = t.clientY - s.y;
       const dx = t.clientX - s.x;
-      // 横向滑动或向上滑：交还给页面
+      // 取消与 preventDefault 必须在事件回调内同步完成
       if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) {
         s.active = false;
         setPullBoth(0);
         return;
       }
-      if (window.scrollY > 0) {
-        s.active = false;
-        setPullBoth(0);
-        return;
-      }
-      const damped = Math.min(MAX, dy * 0.45);
-      setPullBoth(damped);
-      if (damped > 6 && e.cancelable) e.preventDefault();
+      if (dy > 6 && e.cancelable) e.preventDefault();
+      // 写阶段：所有触发 DOM 更新的操作合并进 rAF
+      if (tickingRef.current) return;
+      tickingRef.current = true;
+      requestAnimationFrame(() => {
+        tickingRef.current = false;
+        // scrollY 用 touchstart 时缓存的值，不再读取布局
+        if (s.scrollY > 0) {
+          s.active = false;
+          setPullBoth(0);
+          return;
+        }
+        const m = moveRef.current;
+        if (!m) return;
+        const damped = Math.min(MAX, (m.y - s.y) * 0.45);
+        setPullBoth(damped);
+      });
     };
 
     const onEnd = () => {
