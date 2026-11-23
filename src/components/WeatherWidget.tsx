@@ -153,7 +153,7 @@ export default function WeatherWidget() {
             {data.city}
             {tag ? " · " + tag : ""}
           </span>
-          <span className="shrink-0 opacity-70">
+          <span className="shrink-0 opacity-90">
             · {locale === "en" ? "Updated" : "更新"} {data.updatedAt}
           </span>
         </button>

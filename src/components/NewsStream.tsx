@@ -25,7 +25,7 @@ export default function NewsStream() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => setPaused(!paused)}
-            className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={paused ? t.common.play : t.common.pause}
             aria-label={paused ? t.common.play : t.common.pause}
           >
@@ -33,7 +33,7 @@ export default function NewsStream() {
           </button>
           <button
             onClick={() => void load()}
-            className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.common.refresh}
             aria-label={t.common.refresh}
           >

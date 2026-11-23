@@ -18,6 +18,8 @@ interface HotSourceDef {
   alt?: string;
 }
 
+const ENABLE_HOT = false;
+
 const SOURCES: HotSourceDef[] = [
   { key: "weibo", name: "微博热搜", alt: "hotlist/wbHot" },
   { key: "zhihu", name: "知乎热榜", alt: "hotlist/zhihuHot" },
@@ -107,6 +109,12 @@ export function useHot() {
     async (force = false) => {
       if (!force && items.length > 0) {
         setStatus("ok");
+        return;
+      }
+      // imsyy / vvhan 在国内网络 DNS 不可达，跳过请求交给每日简报，避免控制台网络错误
+      if (!ENABLE_HOT) {
+        setStatus(items.length > 0 ? "ok" : "error");
+        logger.warn("useHot", "热榜源国内不可达，使用每日简报");
         return;
       }
       setStatus("loading");

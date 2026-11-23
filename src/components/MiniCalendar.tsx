@@ -52,18 +52,21 @@ export default function MiniCalendar() {
         <div className="flex gap-1">
           <button
             onClick={() => setViewDate(new Date(year, month - 1, 1))}
+            aria-label="上一月"
             className="rounded-lg p-1.5 text-ink-subtle transition-colors hover:bg-white/5 hover:text-ink"
           >
             <Icons.ChevronLeft size={16} />
           </button>
           <button
             onClick={() => setViewDate(new Date(today.getFullYear(), today.getMonth(), 1))}
+            aria-label="回到本月"
             className="rounded-lg p-1.5 text-ink-subtle transition-colors hover:bg-white/5 hover:text-ink"
           >
             <Icons.CircleDot size={16} />
           </button>
           <button
             onClick={() => setViewDate(new Date(year, month + 1, 1))}
+            aria-label="下一月"
             className="rounded-lg p-1.5 text-ink-subtle transition-colors hover:bg-white/5 hover:text-ink"
           >
             <Icons.ChevronRight size={16} />
