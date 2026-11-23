@@ -1,4 +1,6 @@
-const VERSION = "nh-v3-" + (new Date().toISOString().slice(0, 10));
+const BUILD_ID = "__BUILD_ID__";
+// 每次部署注入主包 hash，sw.js 内容必变 → 浏览器强制更新 SW 与预缓存
+const VERSION = "nh-v3-" + BUILD_ID;
 const CACHE_NAME = VERSION;
 const BASE = self.location.pathname.replace(/\/sw\.js$/, "/");
 const PRECACHE = [
@@ -36,7 +38,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((c) => c.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(BASE + "index.html").then((r) => r || caches.match(BASE + "offline.html"))),
+        .catch(() => caches.match(BASE + "offline.html").then((r) => r || new Response("<h1>offline</h1>", { headers: { "Content-Type": "text/html" } }))),
     );
     return;
   }

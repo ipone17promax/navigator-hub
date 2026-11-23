@@ -20,3 +20,16 @@ html = html.replace(m[0], "<style>" + css + "</style>");
 fs.writeFileSync(htmlPath, html);
 fs.rmSync(cssPath, { force: true });
 console.log("inlined", cssName, css.length, "bytes into index.html");
+// 构建后处理：把主包 hash 注入 sw.js 的 BUILD_ID
+// - 保证每次部署后 sw.js 内容必变，浏览器强制更新 Service Worker 与预缓存
+// - 否则同一天内多次部署 sw.js 字节不变，SW 缓存的旧 index.html 会引用已删除的旧 CSS（404 白屏）
+const mainJsMatch = html.match(/assets\/index-[A-Za-z0-9_-]+\.js/);
+if (mainJsMatch) {
+  const swPath = path.join("dist", "sw.js");
+  const sw = fs.readFileSync(swPath, "utf8");
+  const stamp = mainJsMatch[0].replace("assets/", "").replace(".js", "");
+  if (sw.includes("__BUILD_ID__")) {
+    fs.writeFileSync(swPath, sw.replace("__BUILD_ID__", stamp));
+    console.log("sw.js BUILD_ID ->", stamp);
+  }
+}
