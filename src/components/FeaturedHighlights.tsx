@@ -245,17 +245,22 @@ export default function FeaturedHighlights() {
               </div>
             </div>
 
-            <div className="absolute right-4 top-4 flex items-center gap-1.5">
+            <div className="absolute right-4 top-4 flex items-center gap-0.5">
               {HIGHLIGHTS.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => goTo(idx)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    idx === activeIdx
-                      ? "w-6 bg-white"
-                      : "w-1.5 bg-white/40 hover:bg-white/60"
-                  }`}
-                />
+                  aria-label={`${idx + 1}`}
+                  className="flex h-6 w-6 items-center justify-center"
+                >
+                  <span
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      idx === activeIdx
+                        ? "w-6 bg-white"
+                        : "w-1.5 bg-white/40 hover:bg-white/60"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
           </div>

@@ -52,7 +52,7 @@ export default function SettingsDrawer({ open, initial = "bg", onClose }: { open
         aria-label={t.settings}
         aria-hidden={!open}
         className={`absolute right-0 top-0 flex h-full w-[min(96vw,440px)] flex-col border-l border-stroke bg-bg-base/95 shadow-2xl backdrop-blur-xl transition-transform duration-300 ${
-          open ? "translate-x-0" : "translate-x-full"
+          open ? "translate-x-0 visible" : "translate-x-full invisible"
         }`}
       >
         <header className="flex items-center gap-3 border-b border-stroke px-4 py-3">

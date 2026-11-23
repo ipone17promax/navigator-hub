@@ -122,7 +122,7 @@ export default function BottomNavBar({ onOpenBg, onOpenTheme, onOpenSync, onOpen
           </button>
           <button onClick={toggle}
             className="flex h-10 min-w-10 items-center justify-center rounded-xl px-2 text-xs font-bold text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
-            title={t.language} aria-label={t.language}>
+            title={t.language} aria-label={`${t.language} ${locale === "zh" ? "EN" : "中"}`}>
             {locale === "zh" ? "EN" : "中"}
           </button>
         </div>

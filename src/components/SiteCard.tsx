@@ -43,74 +43,7 @@ export default function SiteCard({ id, name, url, desc, iconName = "Globe", cate
   useEffect(() => {
     let cancelled = false;
     const hasLocalIcon = LOCAL_ICON_IDS.includes(id);
-    const candidates: (() => string | null)[] = [
-      ...(hasLocalIcon
-        ? [
-            () => `/icons/${id}.svg`,
-            () => `/icons/${id}.png`,
-          ]
-        : []),
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://api.iowen.cn/favicon/${host}.png`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://favicon.cccyun.cc/${host}`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://api.vvhan.com/api/favicon?url=${host}`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://www.infinitynewtab.com/statics/favicon/get.php?url=${host}`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://${host}/favicon.ico`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://api.favicon.im/${host}`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://api.faviconkit.com/${host}/64`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://icons.duckduckgo.com/ip3/${host}.ico`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
-        } catch { return null; }
-      },
-      () => {
-        try {
-          const host = new URL(url.startsWith("http") ? url : "https://" + url).hostname;
-          return `https://cravatar.cn/avatar/${host}?s=64&d=identicon`;
-        } catch { return null; }
-      },
-    ];
+    const candidates: (() => string | null)[] = [];
     const tryNext = (i: number) => {
       if (cancelled || i >= candidates.length) return;
       const src = candidates[i]();

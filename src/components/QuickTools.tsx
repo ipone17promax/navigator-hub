@@ -56,7 +56,8 @@ export default function QuickTools() {
               href={tool.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex flex-col items-center gap-1.5 rounded-xl border border-stroke/50 bg-white/5 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-stroke-hover hover:bg-white/10"
+              aria-label={t.toolNames[tool.nameKey]}
+              className="group flex min-h-6 flex-col items-center gap-1.5 rounded-xl border border-stroke/50 bg-white/5 p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-stroke-hover hover:bg-white/10"
             >
               <Icon size={20} style={{ color: tool.color }} className="transition-transform duration-200 group-hover:scale-110" />
               <span className="text-[11px] text-ink-muted transition-colors group-hover:text-ink">{t.toolNames[tool.nameKey]}</span>
@@ -74,7 +75,7 @@ export default function QuickTools() {
           <Link
             key={b.to}
             to={b.to}
-            className="group inline-flex items-center gap-1 text-[11px] text-ink-muted transition-colors hover:text-ink"
+            className="group inline-flex min-h-6 items-center gap-1 py-0.5 text-[11px] text-ink-muted transition-colors hover:text-ink"
           >
             <b.icon size={12} style={{ color: b.color }} className="transition-transform duration-200 group-hover:scale-110" />
             {locale === "zh" ? b.zh : b.en}

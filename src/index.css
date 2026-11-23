@@ -13,7 +13,7 @@ html[data-theme="cyber"] {
   --brand-secondary: #ec4899;
   --ink-default: #f1f5f9;
   --ink-muted: #94a3b8;
-  --ink-subtle: #64748b;
+  --ink-subtle: #8b9bb4;
   --stroke-default: rgba(255, 255, 255, 0.08);
   --stroke-hover: rgba(99, 102, 241, 0.55);
 }
@@ -25,7 +25,7 @@ html[data-theme="aurora"] {
   --brand-secondary: #3b82f6;
   --ink-default: #ecfeff;
   --ink-muted: #94a3b8;
-  --ink-subtle: #64748b;
+  --ink-subtle: #8b9bb4;
   --stroke-default: rgba(255, 255, 255, 0.07);
   --stroke-hover: rgba(16, 185, 129, 0.55);
 }
