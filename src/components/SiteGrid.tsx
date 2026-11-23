@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as Icons from "@/lib/iconRegistry";
 import SiteCard from "./SiteCard";
 import { SITES, CATEGORIES } from "@/config/sites";
@@ -17,6 +17,12 @@ export default function SiteGrid() {
   const removeSite = useUserStore((s) => s.removeSite);
   const unlocked = useUserStore((s) => s.privateUnlocked);
   const { t, locale } = useI18n();
+
+  // 分批挂载：首屏只渲染前 24 张，切换分类自动重置，降低首帧 Style & Layout 开销
+  const [visibleCount, setVisibleCount] = useState(24);
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [activeCat]);
 
   const privateCatIds = useMemo(() => new Set(customCats.filter((c) => c.private).map((c) => c.id)), [customCats]);
   const privateHidden = (catId: string) => !unlocked && privateCatIds.has(catId);
@@ -120,7 +126,7 @@ export default function SiteGrid() {
           </div>
         ) : (
           <div className={`grid gap-4 ${cols}`}>
-            {visibleSites.map((s, i) => (
+            {visibleSites.slice(0, visibleCount).map((s, i) => (
               <SiteCard
                 key={s.id}
                 id={s.id} name={s.name} url={s.url} desc={s.desc} iconName={s.iconName}
@@ -128,6 +134,18 @@ export default function SiteGrid() {
                 onDeleteCustom={s.custom ? () => removeSite(s.id) : undefined}
               />
             ))}
+          </div>
+        )}
+        {visibleSites.length > visibleCount && (
+          <div className="flex justify-center">
+            <button
+              onClick={() => setVisibleCount((c) => c + 24)}
+              className="rounded-xl border border-stroke px-5 py-2 text-xs text-ink-muted transition-colors hover:border-stroke-hover hover:bg-white/5 hover:text-ink"
+            >
+              {locale === "zh"
+                ? `显示更多（还有 ${visibleSites.length - visibleCount} 个）`
+                : `Show more (${visibleSites.length - visibleCount} left)`}
+            </button>
           </div>
         )}
       </section>
