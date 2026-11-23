@@ -18,8 +18,9 @@ const cssPath = path.join("dist", "assets", cssName);
 const css = fs.readFileSync(cssPath, "utf8").replace(/<\/style/gi, "<\\/style");
 html = html.replace(m[0], "<style>" + css + "</style>");
 fs.writeFileSync(htmlPath, html);
-fs.rmSync(cssPath, { force: true });
-console.log("inlined", cssName, css.length, "bytes into index.html");
+// 保留 CSS 文件副本：浏览器缓存的旧版 index.html（CSS 仍为外链的版本）
+// 引用的就是这个 hash 文件，删掉它会让所有旧缓存用户 404 白屏
+console.log("inlined", cssName, css.length, "bytes into index.html (file kept)");
 // 构建后处理：把主包 hash 注入 sw.js 的 BUILD_ID
 // - 保证每次部署后 sw.js 内容必变，浏览器强制更新 Service Worker 与预缓存
 // - 否则同一天内多次部署 sw.js 字节不变，SW 缓存的旧 index.html 会引用已删除的旧 CSS（404 白屏）
