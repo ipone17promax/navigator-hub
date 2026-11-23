@@ -539,6 +539,12 @@ html[data-elder="true"] .info-grid {
     right: 12px;
     width: auto;
   }
+  /* 移动端点击区不小于 44px，符合触控规范 */
+  .bottom-nav-inner > button,
+  .header-actions > button {
+    min-height: 44px;
+    min-width: 44px;
+  }
 }
 
 /* 微信 WebView 的 100vh 会包含工具栏，用 dvh 修正 */

@@ -7,7 +7,9 @@ import { decodeSync, encodeSync, extractSyncCode } from "@/lib/syncCode";
 import {
   clearSnapshot,
   downloadFromGist,
+  fetchGistUpdatedAt,
   getGistId,
+  getRemoteUpdated,
   getGistToken,
   getSnapshot,
   saveSnapshot,
@@ -137,6 +139,23 @@ export default function DataSync() {
     const v = token.trim();
     if (!v) return flash(t.gist.noToken);
     setBusy("up");
+    // 上传前检查远程是否被另一台设备更新过
+    const gid = getGistId();
+    if (gid) {
+      const remote = await fetchGistUpdatedAt(gid, v);
+      const known = getRemoteUpdated();
+      if (remote && known && remote > known) {
+        const ok = window.confirm(
+          zh
+            ? "远程 Gist 有更新（可能来自另一台设备），继续上传会覆盖它。仍要上传吗？"
+            : "Remote gist has newer changes (possibly from another device). Overwrite anyway?",
+        );
+        if (!ok) {
+          setBusy("");
+          return;
+        }
+      }
+    }
     // 上传前备份本地当前状态，失败或误操作可回滚
     saveSnapshot(buildPayload(), "before-upload");
     setSnapshot(getSnapshot());

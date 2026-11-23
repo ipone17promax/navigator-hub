@@ -10,7 +10,39 @@
 
 const TOKEN_KEY = "nh.gist.token";
 const ID_KEY = "nh.gist.id";
+const REMOTE_UPDATED_KEY = "nh.gist.remoteUpdated";
 const FILE_NAME = "navigator-hub.json";
+
+export function getRemoteUpdated(): string {
+  try {
+    return localStorage.getItem(REMOTE_UPDATED_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function setRemoteUpdated(value: string): void {
+  try {
+    if (value) localStorage.setItem(REMOTE_UPDATED_KEY, value);
+    else localStorage.removeItem(REMOTE_UPDATED_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 只取 remote gist 的 updated_at，用于上传前冲突判断 */
+export async function fetchGistUpdatedAt(id: string, token: string): Promise<string | null> {
+  try {
+    const h: Record<string, string> = { Accept: "application/vnd.github+json" };
+    if (token) h.Authorization = `Bearer ${token}`;
+    const res = await fetch(`https://api.github.com/gists/${id}`, { headers: h });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return typeof data.updated_at === "string" ? data.updated_at : null;
+  } catch {
+    return null;
+  }
+}
 
 export interface GistPayload {
   v: number;
@@ -134,6 +166,7 @@ export async function uploadToGist(token: string, payload: unknown): Promise<{ i
   const data = await res.json();
   const gistId = String(data.id || id);
   setGistId(gistId);
+  if (typeof data.updated_at === "string") setRemoteUpdated(data.updated_at);
   return { id: gistId, url: String(data.html_url || `https://gist.github.com/${gistId}`) };
 }
 
@@ -146,6 +179,7 @@ export async function downloadFromGist(id: string, token: string): Promise<unkno
   const res = await fetch(`https://api.github.com/gists/${gid}`, { headers: h });
   await assertOk(res);
   const data = await res.json();
+  if (typeof data.updated_at === "string") setRemoteUpdated(data.updated_at);
   const file = data?.files?.[FILE_NAME] ?? Object.values(data?.files ?? {})[0] as { content?: string; truncated?: boolean; raw_url?: string } | undefined;
   if (!file) throw new Error("file not found in gist");
   let content = file.content;
