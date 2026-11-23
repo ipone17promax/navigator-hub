@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { deferIdle } from "@/lib/idle";
 import { logger } from "@/lib/logger";
 import { fetchWithTimeout } from "@/lib/api";
 
@@ -146,12 +147,16 @@ export function useStocks() {
   }, []);
 
   useEffect(() => {
-    void loadAll();
-    const t = setInterval(() => {
-      // 16:00 后（A股+港股均已收盘）自动停刷，避免盘后空转
-      if (new Date().getHours() >= 16) return;
+    // 第三方行情延迟到空闲期，避免挤占首屏渲染主线程
+    let t = 0;
+    deferIdle(() => {
       void loadAll();
-    }, 60 * 1000);
+      t = setInterval(() => {
+        // 16:00 后（A股+港股均已收盘）自动停刷，避免盘后空转
+        if (new Date().getHours() >= 16) return;
+        void loadAll();
+      }, 60 * 1000);
+    });
     return () => clearInterval(t);
   }, [loadAll]);
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { deferIdle } from "@/lib/idle";
 import { safeJson, fetchWithTimeout } from "@/lib/api";
 import { logger } from "@/lib/logger";
 
@@ -372,7 +373,8 @@ export function useWeather() {
   }, []);
 
   useEffect(() => {
-    void load();
+    // 第三方天气请求延迟到空闲期，避免挤占首屏渲染主线程
+    deferIdle(() => void load());
   }, [load]);
 
   /** 手动指定城市：写入本地后立即重新拉取 */

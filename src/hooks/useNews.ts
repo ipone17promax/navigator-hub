@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { deferIdle } from "@/lib/idle";
 import { logger } from "@/lib/logger";
 import { fetchWithTimeout } from "@/lib/api";
 
@@ -93,7 +94,8 @@ export function useNews(autoScroll = true) {
   }, []);
 
   useEffect(() => {
-    void load();
+    // 第三方新闻请求延迟到空闲期，避免挤占首屏渲染主线程
+    deferIdle(() => void load());
   }, [load]);
 
   /**
