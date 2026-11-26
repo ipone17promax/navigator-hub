@@ -21,7 +21,7 @@ setTimeout(() => {
       sakura: "bg-sakura", warm: "bg-warm", matrix: "bg-matrix",
     };
     if (custom) {
-      layer.className = "fixed inset-0 -z-10 animate-fade-in";
+      layer.className = "fixed inset-0 -z-10";
       if (custom.startsWith("linear-gradient") || custom.startsWith("radial-gradient")) {
         layer.style.backgroundImage = custom;
       } else {
@@ -30,7 +30,7 @@ setTimeout(() => {
         layer.style.backgroundPosition = "center";
       }
     } else {
-      layer.className = "fixed inset-0 -z-10 animate-fade-in " + (clsMap[preset] || "bg-starfield");
+      layer.className = "fixed inset-0 -z-10 " + (clsMap[preset] || "bg-starfield");
       layer.style.backgroundImage = "";
     }
     layer.style.opacity = String(opacity);
@@ -70,7 +70,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     const ready = (document.getElementById("root")?.childElementCount ?? 0) > 0;
     if (ready || performance.now() - started > 4000) {
       boot.style.opacity = "0";
-      window.setTimeout(() => boot.remove(), 280);
+      boot.remove();
       return;
     }
     requestAnimationFrame(tick);

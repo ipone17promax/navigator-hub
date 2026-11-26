@@ -55,7 +55,7 @@ export default function GreetingClock() {
   const date = `${now.getFullYear()}${t.monthUnit}${now.getMonth() + 1}${t.dayUnit} · ${t.weekDays[now.getDay()]}`;
 
   return (
-    <div className="pointer-events-none select-none text-center animate-fade-in-up">
+    <div className="pointer-events-none select-none text-center">
       <div
         className="font-display tabular-nums tracking-tight text-ink drop-shadow-[0_0_30px_rgba(99,102,241,0.35)]"
         style={{ fontSize: "clamp(2.5rem, 7vw, 4.5rem)", fontWeight: 700, lineHeight: 1.05 }}

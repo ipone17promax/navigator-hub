@@ -221,7 +221,7 @@ export default function SearchHero() {
   const showHistory = focused && !keyword.trim() && history.length > 0;
 
   return (
-    <div className="relative mx-auto w-full max-w-[880px] animate-fade-in-up" style={{ animationDelay: "80ms" }}>
+    <div className="relative mx-auto w-full max-w-[880px]">
       <div className="relative flex items-stretch gap-0 rounded-2xl border border-stroke bg-bg-elevate/80 backdrop-blur-xl transition-all duration-300 focus-within:border-stroke-hover focus-within:shadow-glow-lg">
         <div className="relative" ref={menuRef}>
           <button

@@ -76,7 +76,7 @@ export default function SiteGrid() {
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-8">
       {favSites.length > 0 && (
-        <section className="animate-fade-in-up">
+        <section>
           <div className="mb-3 flex items-center gap-2 px-1">
             <Icons.Star size={14} className="text-amber-400" fill="currentColor" />
             <h2 className="text-xs font-semibold uppercase tracking-widest text-ink-subtle">{t.fav.title}</h2>
@@ -98,7 +98,7 @@ export default function SiteGrid() {
         </section>
       )}
 
-      <section className="animate-fade-in-up">
+      <section>
         <div className="mb-3 flex items-center gap-2 px-1">
           <Icons.LayoutGrid size={14} className="text-brand-primary" />
           <h2 className="text-xs font-semibold uppercase tracking-widest text-ink-subtle">

@@ -150,7 +150,7 @@ export default function SiteCard({ id, name, url, desc, iconName = "Globe", cate
 
   return (
     <div
-      className="site-card group relative flex flex-col overflow-hidden rounded-2xl border border-stroke bg-bg-elevate/60 p-4 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-stroke-hover hover:shadow-glow animate-fade-in-up cursor-pointer"
+      className="site-card group relative flex flex-col overflow-hidden rounded-2xl border border-stroke bg-bg-elevate/60 p-4 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-stroke-hover hover:shadow-glow cursor-pointer"
       onClick={guardedClick}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

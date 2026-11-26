@@ -159,7 +159,7 @@ export default function FeaturedHighlights() {
   );
 
   return (
-    <div className="w-full max-w-[1440px] animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+    <div className="w-full max-w-[1440px]">
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Icons.Sparkles size={18} className="text-amber-400" />

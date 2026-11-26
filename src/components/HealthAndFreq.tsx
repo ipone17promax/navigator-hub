@@ -81,7 +81,7 @@ export function HighFreqBar({ onOpen }: { onOpen?: (url: string, info: { id: str
   const top = [...visits].sort((a, b) => b.count - a.count).slice(0, 6);
   if (top.length === 0) return null;
   return (
-    <div className="mx-auto w-full max-w-[1200px] animate-fade-in-up" style={{ animationDelay: "60ms" }}>
+    <div className="mx-auto w-full max-w-[1200px]">
       <div className="mb-2 flex items-center gap-2 px-1">
         <Icons.Flame size={14} className="text-orange-400" />
         <span className="text-xs font-semibold uppercase tracking-widest text-ink-subtle">{t.recommend.freq}</span>
