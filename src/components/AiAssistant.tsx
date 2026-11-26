@@ -315,7 +315,7 @@ export default function AiAssistant() {
                 /* ignore */
               }
             }}
-            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={zh ? "清空对话" : "Clear chat"}
             aria-label={zh ? "清空对话" : "Clear chat"}
           >
@@ -331,7 +331,7 @@ export default function AiAssistant() {
           </button>
           <button
             onClick={() => setOpen(false)}
-            className="rounded-lg p-1.5 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             aria-label={zh ? "关闭" : "Close"}
           >
             <Icons.X size={14} />

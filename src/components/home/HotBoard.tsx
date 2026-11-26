@@ -43,7 +43,7 @@ export default function HotBoard() {
         </div>
         <button
           onClick={reload}
-          className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
           title={t.common.refresh}
         >
           <Icons.RefreshCw size={14} />

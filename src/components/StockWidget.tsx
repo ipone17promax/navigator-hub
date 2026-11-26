@@ -44,7 +44,7 @@ export default function StockWidget() {
             <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400">示例</span>
           )}
         </div>
-        <button onClick={() => loadAll()} className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink" title={t.common.refresh}>
+        <button onClick={() => loadAll()} className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink" title={t.common.refresh}>
           <Icons.RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>

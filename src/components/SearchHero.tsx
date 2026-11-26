@@ -229,7 +229,7 @@ export default function SearchHero() {
             onClick={() => setOpen((o) => !o)}
             className="flex h-full items-center gap-2 rounded-l-2xl border-r border-stroke px-4 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.engineSwitch}
-            aria-label={t.engineSwitch}
+            aria-label={activeEngine.name + " " + t.engineSwitch}
             aria-expanded={open}
           >
             <EngineIcon size={20} style={{ color: activeEngine.accent }} />

@@ -70,7 +70,7 @@ export default function WeatherWidget() {
             </div>
             <button
               onClick={() => relocate()}
-              className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
               title={t.weather.useGps}
             >
               <Icons.RefreshCw size={14} />
@@ -127,14 +127,14 @@ export default function WeatherWidget() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => relocate()}
-            className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.weather.useGps}
           >
             <Icons.MapPin size={14} />
           </button>
           <button
             onClick={() => reload()}
-            className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             title={t.common.refresh}
           >
             <Icons.RefreshCw size={14} />

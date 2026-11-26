@@ -87,7 +87,7 @@ export default function ContentCenter() {
             <button
               onClick={() => void load(true)}
               title={t.common.refresh}
-              className="rounded-lg p-1 text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-white/5 hover:text-ink"
             >
               <Icons.RefreshCw size={14} className={loading ? "animate-spin" : ""} />
             </button>
