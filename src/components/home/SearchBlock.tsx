@@ -17,7 +17,7 @@ import IntroGuide from "@/components/home/IntroGuide";
  */
 export default function SearchBlock() {
   return (
-    <section className="relative z-10 px-4 pb-3 pt-4 sm:px-6">
+    <section className="relative z-30 px-4 pb-3 pt-4 sm:px-6">
       <div className="mx-auto w-full max-w-3xl flex flex-col items-center gap-3">
         <GreetingClock />
         <div className="relative w-full">
